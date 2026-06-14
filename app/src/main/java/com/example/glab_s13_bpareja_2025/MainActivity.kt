@@ -5,10 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,16 +34,25 @@ class MainActivity : ComponentActivity() {
                     Column(
                         modifier = Modifier
                             .padding(innerPadding)
-                            .fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         VisibilityAnimationScreen()
+                        Divider()
+                        ColorAnimationScreen()
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun Divider() {
+    Spacer(modifier = Modifier.height(32.dp))
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.Gray))
+    Spacer(modifier = Modifier.height(32.dp))
 }
 
 @Composable
@@ -50,6 +63,8 @@ fun VisibilityAnimationScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(16.dp)
     ) {
+        Text("Exercise 1: Visibility Animation")
+        Spacer(modifier = Modifier.height(8.dp))
         Button(onClick = { isVisible = !isVisible }) {
             Text(text = if (isVisible) "Hide Box" else "Show Box")
         }
@@ -70,10 +85,41 @@ fun VisibilityAnimationScreen() {
     }
 }
 
+@Composable
+fun ColorAnimationScreen() {
+    var isBlue by remember { mutableStateOf(true) }
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isBlue) Color.Blue else Color.Green,
+        animationSpec = tween(durationMillis = 1000)
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Exercise 2: Color Animation")
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = { isBlue = !isBlue }) {
+            Text(text = "Change Color")
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(backgroundColor)
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
-fun VisibilityAnimationPreview() {
+fun DefaultPreview() {
     GLABS13BPAREJA2025Theme {
-        VisibilityAnimationScreen()
+        Column {
+            VisibilityAnimationScreen()
+            ColorAnimationScreen()
+        }
     }
 }
