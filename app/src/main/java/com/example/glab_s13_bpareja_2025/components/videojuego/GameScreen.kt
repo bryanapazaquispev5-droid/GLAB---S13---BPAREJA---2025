@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -45,6 +46,14 @@ data class Projectile(
     val isSineWave: Boolean = false,
     val startY: Float = 0f,
     val age: Int = 0
+)
+
+data class DamageText(
+    val id: Long,
+    val text: String,
+    val position: Offset,
+    val alpha: Float,
+    val color: Color
 )
 
 @Composable
@@ -99,6 +108,23 @@ fun GameScreen(onExit: () -> Unit) {
         var enemyShootCooldown by remember { mutableStateOf(0) }
         var playerShootCooldown by remember { mutableStateOf(0) }
 
+        // Estados para la invulnerabilidad (esquivas) y textos flotantes
+        var isInvincible by remember { mutableStateOf(false) }
+        var invincibleFramesLeft by remember { mutableStateOf(0) }
+        var damageTexts by remember { mutableStateOf(emptyList<DamageText>()) }
+
+        // Animación de pulso infinito (Alpha) durante invulnerabilidad
+        val infiniteTransition = rememberInfiniteTransition(label = "playerPulse")
+        val invincibleAlphaPulse by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(120, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "invincibleAlpha"
+        )
+
         // Bucle del Juego (~60 FPS)
         LaunchedEffect(isGameOver, screenWidthPx, screenHeightPx) {
             if (screenWidthPx <= 0f || screenHeightPx <= 0f) return@LaunchedEffect
@@ -113,7 +139,23 @@ fun GameScreen(onExit: () -> Unit) {
                     playerPos = Offset(nextX, nextY)
                 }
 
-                // 2. Decrementar temporizadores de disparo
+                // 2. Gestionar invulnerabilidad
+                if (invincibleFramesLeft > 0) {
+                    invincibleFramesLeft--
+                    if (invincibleFramesLeft == 0) {
+                        isInvincible = false
+                    }
+                }
+
+                // 3. Mover y atenuar textos de daño flotantes
+                damageTexts = damageTexts.map {
+                    it.copy(
+                        position = it.position.copy(y = it.position.y - 2.5f),
+                        alpha = (it.alpha - 0.03f).coerceAtLeast(0f)
+                    )
+                }.filter { it.alpha > 0f }
+
+                // 4. Decrementar temporizadores de disparo
                 if (playerShootCooldown > 0) playerShootCooldown--
                 if (enemyShootCooldown > 0) {
                     enemyShootCooldown--
@@ -166,7 +208,7 @@ fun GameScreen(onExit: () -> Unit) {
                     enemyShootCooldown = 45 // Cada ~720ms
                 }
 
-                // 3. Mover proyectiles en pantalla
+                // 5. Mover proyectiles en pantalla
                 projectiles = projectiles.map { p ->
                     if (p.isSineWave) {
                         val nextAge = p.age + 1
@@ -178,12 +220,12 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }.filter { it.position.x in -100f..(screenWidthPx + 100f) && it.position.y in -100f..(screenHeightPx + 100f) }
 
-                // 4. IA del Jefe: Movimiento vertical en el lateral derecho
+                // 6. IA del Jefe: Movimiento vertical en el lateral derecho
                 val time = System.currentTimeMillis()
                 val targetY = hudHeightPx + (sin(time / 450.0).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
                 enemyPos = enemyPos.copy(y = targetY)
 
-                // 5. Detección de colisiones precisa usando Rect.overlaps
+                // 7. Detección de colisiones precisa usando Rect.overlaps
                 val playerRect = Rect(playerPos, Size(playerSizePx, playerSizePx))
                 val enemyRect = Rect(enemyPos, Size(enemySizePx, enemySizePx))
                 val projPlayerSizePx = with(density) { 16.dp.toPx() }
@@ -207,12 +249,44 @@ fun GameScreen(onExit: () -> Unit) {
                 }
 
                 if (hitsPlayer.isNotEmpty()) {
-                    playerHealth = (playerHealth - 0.08f).coerceAtLeast(0f)
                     projectiles = projectiles.filter { it !in hitsPlayer }
+                    if (!isInvincible) {
+                        playerHealth = (playerHealth - 0.08f).coerceAtLeast(0f)
+                        isInvincible = true
+                        invincibleFramesLeft = 60 // 1 segundo de invencibilidad y parpadeo
+                        
+                        // Añadir texto flotante de impacto
+                        damageTexts = damageTexts + DamageText(
+                            id = nextId++,
+                            text = "💥 -8% HP",
+                            position = playerPos.copy(x = playerPos.x + 10f, y = playerPos.y - 20f),
+                            alpha = 1f,
+                            color = Color(0xFFEF4444)
+                        )
+                    } else {
+                        // Esquiva exitosa debido a inmunidad temporal
+                        damageTexts = damageTexts + DamageText(
+                            id = nextId++,
+                            text = "🛡️ ESQUIVADO",
+                            position = playerPos.copy(x = playerPos.x + 10f, y = playerPos.y - 20f),
+                            alpha = 1f,
+                            color = Color(0xFF06B6D4)
+                        )
+                    }
                 }
+                
                 if (hitsEnemy.isNotEmpty()) {
                     enemyHealth = (enemyHealth - 0.05f).coerceAtLeast(0f)
                     projectiles = projectiles.filter { it !in hitsEnemy }
+                    
+                    // Añadir texto de impacto al jefe
+                    damageTexts = damageTexts + DamageText(
+                        id = nextId++,
+                        text = "⚡ IMPACTO!",
+                        position = enemyPos.copy(x = enemyPos.x + (0..60).random() - 30f, y = enemyPos.y - 20f),
+                        alpha = 1f,
+                        color = Color(0xFFD946EF)
+                    )
                 }
 
                 if (playerHealth <= 0f) { isGameOver = true; isVictory = false }
@@ -270,11 +344,12 @@ fun GameScreen(onExit: () -> Unit) {
             )
         }
 
-        // Renderizado del Jugador (Sin lag de animación de spring para control instantáneo)
+        // Renderizado del Jugador (Con pulso de invulnerabilidad / parpadeo de daño)
         Box(
             modifier = Modifier
                 .offset { IntOffset(playerPos.x.roundToInt(), playerPos.y.roundToInt()) }
                 .size(playerSizeDp)
+                .alpha(if (isInvincible) invincibleAlphaPulse else 1f)
                 .shadow(25.dp, CircleShape, ambientColor = Color(0xFF06B6D4))
                 .background(Brush.sweepGradient(listOf(Color(0xFF06B6D4), Color(0xFF6366F1))), CircleShape),
             contentAlignment = Alignment.Center
@@ -300,6 +375,20 @@ fun GameScreen(onExit: () -> Unit) {
             ) {
                 Text("👾", fontSize = 64.sp)
             }
+        }
+
+        // Renderizado de Textos Flotantes de Daño
+        damageTexts.forEach { dt ->
+            Text(
+                text = dt.text,
+                color = dt.color,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .offset { IntOffset(dt.position.x.roundToInt(), dt.position.y.roundToInt()) }
+                    .alpha(dt.alpha)
+            )
         }
 
         // Controles Táctiles (Joystick en la izquierda, Botón de disparo en la derecha)
@@ -367,6 +456,9 @@ fun GameScreen(onExit: () -> Unit) {
                                 joystickVector = Offset.Zero
                                 playerShootCooldown = 0
                                 enemyShootCooldown = 0
+                                isInvincible = false
+                                invincibleFramesLeft = 0
+                                damageTexts = emptyList()
                                 isGameOver = false
                             },
                             shape = RoundedCornerShape(16.dp),
