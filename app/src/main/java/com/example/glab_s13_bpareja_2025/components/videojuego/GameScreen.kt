@@ -5,6 +5,7 @@ import android.content.pm.ActivityInfo
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -27,6 +28,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +40,7 @@ import com.example.glab_s13_bpareja_2025.components.comun.Joystick
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class Projectile(
     val id: Long,
@@ -54,6 +58,14 @@ data class DamageText(
     val position: Offset,
     val alpha: Float,
     val color: Color
+)
+
+data class ShootingStar(
+    val id: Long,
+    val position: Offset,
+    val velocity: Offset,
+    val length: Float,
+    val alpha: Float
 )
 
 @Composable
@@ -77,6 +89,9 @@ fun GameScreen(onExit: () -> Unit) {
         val density = LocalDensity.current
         val screenWidthPx = with(density) { maxWidth.toPx() }
         val screenHeightPx = with(density) { maxHeight.toPx() }
+
+        val screenWidthDp = maxWidth
+        val screenHeightDp = maxHeight
 
         val playerSizeDp = 70.dp
         val enemySizeDp = 120.dp
@@ -112,6 +127,9 @@ fun GameScreen(onExit: () -> Unit) {
         var isInvincible by remember { mutableStateOf(false) }
         var invincibleFramesLeft by remember { mutableStateOf(0) }
         var damageTexts by remember { mutableStateOf(emptyList<DamageText>()) }
+        
+        // Estado para las estrellas fugaces
+        var shootingStars by remember { mutableStateOf(emptyList<ShootingStar>()) }
 
         // Estados y animaciones de resorte "pop" al recibir impactos de balas
         var playerScaleTarget by remember { mutableStateOf(1f) }
@@ -192,7 +210,27 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.alpha > 0f }
 
-                // 5. Decrementar temporizadores de disparo
+                // 5. Actualizar estrellas fugaces
+                if ((0..100).random() == 0 && shootingStars.size < 3) {
+                    val startX = (300..screenWidthPx.toInt()).random().toFloat()
+                    val startY = (0..200).random().toFloat()
+                    shootingStars = shootingStars + ShootingStar(
+                        id = nextId++,
+                        position = Offset(startX, startY),
+                        velocity = Offset(-20f, 16f), // Rápido y diagonal abajo-izquierda
+                        length = (80..160).random().toFloat(),
+                        alpha = 1f
+                    )
+                }
+
+                shootingStars = shootingStars.map { s ->
+                    s.copy(
+                        position = s.position + s.velocity,
+                        alpha = (s.alpha - 0.03f).coerceAtLeast(0f)
+                    )
+                }.filter { it.alpha > 0f && it.position.x > -150f && it.position.y < screenHeightPx + 150f }
+
+                // 6. Decrementar temporizadores de disparo
                 if (playerShootCooldown > 0) playerShootCooldown--
                 if (enemyShootCooldown > 0) {
                     enemyShootCooldown--
@@ -245,7 +283,7 @@ fun GameScreen(onExit: () -> Unit) {
                     enemyShootCooldown = 45 // Cada ~720ms
                 }
 
-                // 6. Mover proyectiles en pantalla
+                // 7. Mover proyectiles en pantalla
                 projectiles = projectiles.map { p ->
                     if (p.isSineWave) {
                         val nextAge = p.age + 1
@@ -257,12 +295,12 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }.filter { it.position.x in -100f..(screenWidthPx + 100f) && it.position.y in -100f..(screenHeightPx + 100f) }
 
-                // 7. IA del Jefe: Movimiento vertical en el lateral derecho
+                // 8. IA del Jefe: Movimiento vertical en el lateral derecho
                 val time = System.currentTimeMillis()
                 val targetY = hudHeightPx + (sin(time / 450.0).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
                 enemyPos = enemyPos.copy(y = targetY)
 
-                // 8. Detección de colisiones precisa usando Rect.overlaps
+                // 9. Detección de colisiones precisa usando Rect.overlaps
                 val playerRect = Rect(playerPos, Size(playerSizePx, playerSizePx))
                 val enemyRect = Rect(enemyPos, Size(enemySizePx, enemySizePx))
                 val projPlayerSizePx = with(density) { 16.dp.toPx() }
@@ -339,21 +377,80 @@ fun GameScreen(onExit: () -> Unit) {
             }
         }
 
-        // Estrellas de fondo aleatorias
+        // --- RENDERIZADO DE FONDO (PLANETAS Y ESTRELLAS) ---
+
+        // Planetas Retro-Cyber en el fondo
+        Box(
+            modifier = Modifier
+                .offset(x = screenWidthDp * 0.78f, y = 110.dp)
+                .size(160.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color(0xFFD946EF).copy(alpha = 0.12f), Color(0xFF6366F1).copy(alpha = 0.03f), Color.Transparent)
+                    )
+                )
+        ) {
+            // Anillo de planeta simulado
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(1.3f, 0.35f)
+                    .border(2.dp, Color(0xFFD946EF).copy(alpha = 0.08f), CircleShape)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .offset(x = 120.dp, y = screenHeightDp * 0.65f)
+                .size(100.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color(0xFF06B6D4).copy(alpha = 0.12f), Color(0xFF0F172A).copy(alpha = 0.02f), Color.Transparent)
+                    )
+                )
+        )
+
+        // Estrellas de fondo con centelleo por GPU (graphicsLayer)
+        val time = System.currentTimeMillis()
         repeat(35) { index ->
             val starX = remember(index) { (Math.random() * 2000).toFloat().dp }
             val starY = remember(index) { (Math.random() * 1000).toFloat().dp }
             val starSize = remember(index) { (1..3).random().dp }
-            val starAlpha = remember(index) { (0.15f + Math.random() * 0.3f).toFloat() }
+            
             Box(
                 modifier = Modifier
                     .offset(x = starX, y = starY)
                     .size(starSize)
-                    .background(Color.White.copy(alpha = starAlpha), CircleShape)
+                    .graphicsLayer {
+                        // El centelleo varía por tiempo e índice de estrella
+                        alpha = 0.15f + (sin(time / 250.0 + index) * 0.5f + 0.5f).toFloat() * 0.6f
+                    }
+                    .background(Color.White, CircleShape)
             )
         }
 
-        // HUD (Cabecera superior)
+        // Renderizado de Estrellas Fugaces en Canvas
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            shootingStars.forEach { s ->
+                val vMag = sqrt(s.velocity.x * s.velocity.x + s.velocity.y * s.velocity.y)
+                val unitOpposite = Offset(-s.velocity.x / vMag, -s.velocity.y / vMag)
+                val tailEnd = s.position + unitOpposite * s.length
+                
+                drawLine(
+                    brush = Brush.linearGradient(
+                        colors = listOf(Color.White.copy(alpha = s.alpha), Color.Transparent),
+                        start = s.position,
+                        end = tailEnd
+                    ),
+                    start = s.position,
+                    end = tailEnd,
+                    strokeWidth = 3.5f,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+
+        // HUD (Cabecera superior con barras LED)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -510,6 +607,7 @@ fun GameScreen(onExit: () -> Unit) {
                                 playerHitFramesLeft = 0
                                 enemyHitFramesLeft = 0
                                 damageTexts = emptyList()
+                                shootingStars = emptyList()
                                 isGameOver = false
                             },
                             shape = RoundedCornerShape(16.dp),
@@ -536,22 +634,66 @@ fun GameScreen(onExit: () -> Unit) {
 @Composable
 fun HealthBar(health: Float, label: String, color: Color) {
     val animatedHealth by animateFloatAsState(targetValue = health, label = "health")
+    
+    // Animación de pulso LED para el brillo neón
+    val ledTransition = rememberInfiniteTransition(label = "ledPulse")
+    val ledGlowRadius by ledTransition.animateFloat(
+        initialValue = 6f,
+        targetValue = 18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ledGlow"
+    )
+
     Column(horizontalAlignment = Alignment.Start) {
-        Text(label, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black)
-        Spacer(Modifier.height(4.dp))
+        Text(
+            text = label,
+            color = color,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.shadow(
+                elevation = (ledGlowRadius / 2).dp,
+                shape = CircleShape,
+                ambientColor = color,
+                spotColor = color
+            )
+        )
+        Spacer(Modifier.height(6.dp))
         Box(
             modifier = Modifier
                 .width(250.dp)
-                .height(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.05f))
-                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                .height(18.dp)
+                .clip(RoundedCornerShape(9.dp))
+                .background(Color.White.copy(alpha = 0.03f))
+                .border(
+                    width = 1.5.dp,
+                    brush = Brush.horizontalGradient(
+                        listOf(color, color.copy(alpha = 0.2f))
+                    ),
+                    shape = RoundedCornerShape(9.dp)
+                )
+                .shadow(
+                    elevation = ledGlowRadius.dp,
+                    shape = RoundedCornerShape(9.dp),
+                    ambientColor = color,
+                    spotColor = color
+                )
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(animatedHealth)
-                    .background(Brush.horizontalGradient(listOf(color.copy(alpha = 0.7f), color)))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                color.copy(alpha = 0.5f),
+                                Color.White, // Núcleo LED incandescente
+                                color
+                            )
+                        )
+                    )
             )
         }
     }
