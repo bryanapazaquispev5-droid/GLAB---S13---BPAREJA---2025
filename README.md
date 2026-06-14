@@ -61,5 +61,5 @@ com.example.glab_s13_bpareja_2025
 ---
 
 ## 👤 Autor
-**BPAREJA**  
+**IVAN APAZA**  
 *Laboratorio 13 - Desarrollo de Aplicaciones Móviles*

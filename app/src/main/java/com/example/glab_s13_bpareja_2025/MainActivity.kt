@@ -106,7 +106,7 @@ fun MainScreen() {
             
             // Footer
             Text(
-                text = "Desarrollado por BPAREJA",
+                text = "Desarrollado por IVAN APAZA",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 32.dp)
