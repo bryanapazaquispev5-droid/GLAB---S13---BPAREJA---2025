@@ -206,6 +206,7 @@ fun GameScreen(onExit: () -> Unit) {
         var powerUps by remember { mutableStateOf(emptyList<PowerUp>()) }
         var shieldActive by remember { mutableStateOf(false) }
         var doubleShotTimer by remember { mutableStateOf(0) }
+        var tripleShotTimer by remember { mutableStateOf(0) }
         var score by remember { mutableStateOf(0) }
         var comboCount by remember { mutableStateOf(0) }
         var comboResetTimer by remember { mutableStateOf(0) }
@@ -328,9 +329,14 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.age < it.maxAge }
 
-                // 10. Update & spawn floating power-ups
-                if (powerUps.isEmpty() && (0..750).random() == 0) {
-                    val pType = if (Math.random() < 0.5) PowerUpType.SHIELD else PowerUpType.DOUBLE_SHOT
+                // 10. Update & spawn floating power-ups (Increased spawn frequency to make the battle more dynamic!)
+                if (powerUps.isEmpty() && (0..180).random() == 0) {
+                    val pType = when ((0..3).random()) {
+                        0 -> PowerUpType.SHIELD
+                        1 -> PowerUpType.DOUBLE_SHOT
+                        2 -> PowerUpType.HEALTH_RESTORE
+                        else -> PowerUpType.TRIPLE_SHOT
+                    }
                     val startY = hudHeightPx + (Math.random() * (screenHeightPx - hudHeightPx - 100f)).toFloat()
                     powerUps = powerUps + PowerUp(
                         id = nextId++,
@@ -351,9 +357,9 @@ fun GameScreen(onExit: () -> Unit) {
                     val pRect = Rect(p.position, Size(p.size, p.size))
                     if (playerRect.overlaps(pRect)) {
                         collected.add(p)
-                        SoundManager.playPowerUp()
                         when (p.type) {
                             PowerUpType.SHIELD -> {
+                                SoundManager.playPowerUp()
                                 shieldActive = true
                                 damageTexts = damageTexts + DamageText(
                                     id = nextId++,
@@ -364,6 +370,7 @@ fun GameScreen(onExit: () -> Unit) {
                                 )
                             }
                             PowerUpType.DOUBLE_SHOT -> {
+                                SoundManager.playPowerUp()
                                 doubleShotTimer = 480 // 8 seconds at 60 FPS
                                 damageTexts = damageTexts + DamageText(
                                     id = nextId++,
@@ -373,6 +380,28 @@ fun GameScreen(onExit: () -> Unit) {
                                     color = Color(0xFFFFD700)
                                 )
                             }
+                            PowerUpType.HEALTH_RESTORE -> {
+                                SoundManager.playHeal()
+                                playerHealth = (playerHealth + 0.25f).coerceAtMost(1f)
+                                damageTexts = damageTexts + DamageText(
+                                    id = nextId++,
+                                    text = "❤️ +25% VIDA",
+                                    position = playerPos.copy(x = playerPos.x - 20f, y = playerPos.y - 30f),
+                                    alpha = 1.2f,
+                                    color = Color(0xFF00E676)
+                                )
+                            }
+                            PowerUpType.TRIPLE_SHOT -> {
+                                SoundManager.playPowerUp()
+                                tripleShotTimer = 360 // 6 seconds at 60 FPS
+                                damageTexts = damageTexts + DamageText(
+                                    id = nextId++,
+                                    text = "🔱 TRIPLE LÁSER ACTIVADO",
+                                    position = playerPos.copy(x = playerPos.x - 20f, y = playerPos.y - 30f),
+                                    alpha = 1.2f,
+                                    color = Color(0xFFD946EF)
+                                )
+                            }
                         }
                     }
                 }
@@ -380,8 +409,9 @@ fun GameScreen(onExit: () -> Unit) {
                     powerUps = powerUps.filter { it !in collected }
                 }
 
-                // 12. Double shot timer
+                // 12. Power-up timers
                 if (doubleShotTimer > 0) doubleShotTimer--
+                if (tripleShotTimer > 0) tripleShotTimer--
 
                 // 13. Combo reset timer
                 if (comboResetTimer > 0) {
@@ -610,23 +640,35 @@ fun GameScreen(onExit: () -> Unit) {
             screenHeightDp = screenHeightDp
         )
 
-        // RENDER FLOAT POWER-UPS
+        // RENDER FLOAT POWER-UPS (With unique colors and icons)
         powerUps.forEach { p ->
+            val color = when (p.type) {
+                PowerUpType.SHIELD -> Color(0xFF06B6D4) // Cyan
+                PowerUpType.DOUBLE_SHOT -> Color(0xFFFFB300) // Yellow
+                PowerUpType.HEALTH_RESTORE -> Color(0xFF00E676) // Green
+                PowerUpType.TRIPLE_SHOT -> Color(0xFFD946EF) // Fuchsia
+            }
+            val icon = when (p.type) {
+                PowerUpType.SHIELD -> "🛡️"
+                PowerUpType.DOUBLE_SHOT -> "⚡"
+                PowerUpType.HEALTH_RESTORE -> "❤️"
+                PowerUpType.TRIPLE_SHOT -> "🔱"
+            }
             Box(
                 modifier = Modifier
                     .offset { IntOffset(p.position.x.roundToInt(), p.position.y.roundToInt()) }
                     .size(42.dp)
-                    .shadow(12.dp, CircleShape, ambientColor = if (p.type == PowerUpType.SHIELD) Color.Cyan else Color.Yellow)
+                    .shadow(12.dp, CircleShape, ambientColor = color)
                     .background(
                         Brush.radialGradient(
-                            if (p.type == PowerUpType.SHIELD) listOf(Color(0xFF06B6D4), Color(0xFF020617)) else listOf(Color(0xFFFFB300), Color(0xFF020617))
+                            listOf(color, Color(0xFF020617))
                         ),
                         shape = RoundedCornerShape(12.dp)
                     )
-                    .border(2.dp, if (p.type == PowerUpType.SHIELD) Color.Cyan else Color.Yellow, RoundedCornerShape(12.dp)),
+                    .border(2.dp, color, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (p.type == PowerUpType.SHIELD) "🛡️" else "⚡", fontSize = 20.sp)
+                Text(icon, fontSize = 20.sp)
             }
         }
 
@@ -758,7 +800,29 @@ fun GameScreen(onExit: () -> Unit) {
             Button(
                 onClick = { 
                     if (playerShootCooldown == 0) {
-                        if (doubleShotTimer > 0) {
+                        if (tripleShotTimer > 0) {
+                            // Spread fan laser shot
+                            projectiles = projectiles + listOf(
+                                Projectile(
+                                    id = nextId++,
+                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                    velocity = Offset(20f, -5f),
+                                    isPlayer = true
+                                ),
+                                Projectile(
+                                    id = nextId++,
+                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                    velocity = Offset(22f, 0f),
+                                    isPlayer = true
+                                ),
+                                Projectile(
+                                    id = nextId++,
+                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                    velocity = Offset(20f, 5f),
+                                    isPlayer = true
+                                )
+                            )
+                        } else if (doubleShotTimer > 0) {
                             // Double parallel lasers
                             projectiles = projectiles + listOf(
                                 Projectile(
@@ -860,6 +924,7 @@ fun GameScreen(onExit: () -> Unit) {
                                 powerUps = emptyList()
                                 shieldActive = false
                                 doubleShotTimer = 0
+                                tripleShotTimer = 0
                                 score = 0
                                 comboCount = 0
                                 comboResetTimer = 0
@@ -887,6 +952,38 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }
             }
+        }
+
+        // LOW HEALTH pulsing red warning vignette frame
+        if (playerHealth <= 0.25f && !isGameOver) {
+            val lowHealthTransition = rememberInfiniteTransition(label = "lowHealthAlert")
+            val vignetteAlpha by lowHealthTransition.animateFloat(
+                initialValue = 0.12f,
+                targetValue = 0.45f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, easing = EaseInOutSine),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "vignetteAlpha"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(
+                        width = 8.dp,
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color.Transparent, Color.Red.copy(alpha = vignetteAlpha)),
+                            radius = screenWidthPx * 0.7f
+                        ),
+                        shape = RoundedCornerShape(0.dp)
+                    )
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(Color.Transparent, Color.Red.copy(alpha = vignetteAlpha * 0.35f)),
+                            radius = screenWidthPx * 0.8f
+                        )
+                    )
+            )
         }
     }
 }

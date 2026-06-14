@@ -5,8 +5,10 @@ import androidx.compose.ui.graphics.Color
 
 // Tipos de Power-Up del juego
 enum class PowerUpType {
-    SHIELD,       // Otorga un escudo de energía cian protector
-    DOUBLE_SHOT   // Habilita disparo doble por 8 segundos
+    SHIELD,         // Otorga un escudo de energía cian protector
+    DOUBLE_SHOT,    // Habilita disparo doble por 8 segundos
+    HEALTH_RESTORE, // Restaura 25% de la barra de vida
+    TRIPLE_SHOT     // Habilita disparo triple (en abanico) por 6 segundos
 }
 
 // Proyectiles en pantalla

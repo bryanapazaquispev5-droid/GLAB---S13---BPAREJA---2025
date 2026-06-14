@@ -120,6 +120,22 @@ object SoundManager {
         }.start()
     }
 
+    // Sonido de curación (Soft ascending synthesizer sweep)
+    fun playHeal() {
+        Thread {
+            val durationSec = 0.25f
+            val numSamples = (durationSec * SAMPLE_RATE).toInt()
+            val samples = FloatArray(numSamples)
+            for (i in 0 until numSamples) {
+                val progress = i.toFloat() / numSamples
+                val freq = 330.0f + progress * 440.0f // Sweep from 330Hz to 770Hz
+                val angle = 2.0 * PI * freq * (i.toFloat() / SAMPLE_RATE)
+                samples[i] = (sin(angle).toFloat() * 0.18f) * (1f - progress)
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
+
     // Arpegio ascendente de victoria (C -> E -> G -> C de 8 bits)
     fun playVictory() {
         Thread {
