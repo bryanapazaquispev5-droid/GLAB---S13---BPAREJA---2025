@@ -68,6 +68,32 @@ data class ShootingStar(
     val alpha: Float
 )
 
+data class BackgroundStar(
+    val id: Long,
+    val position: Offset,
+    val size: Float,
+    val speed: Float,
+    val alpha: Float
+)
+
+data class NebulaCloud(
+    val id: Long,
+    val position: Offset,
+    val size: Float,
+    val color: Color,
+    val speed: Float
+)
+
+data class SpaceAsteroid(
+    val id: Long,
+    val position: Offset,
+    val size: Float,
+    val speed: Float,
+    val rotation: Float,
+    val rotationSpeed: Float,
+    val emoji: String
+)
+
 @Composable
 fun GameScreen(onExit: () -> Unit) {
     val context = LocalContext.current
@@ -103,12 +129,81 @@ fun GameScreen(onExit: () -> Unit) {
 
         var playerPos by remember { mutableStateOf(Offset(200f, 400f)) }
         var enemyPos by remember { mutableStateOf(Offset(1200f, 400f)) }
+
+        // Elementos dinámicos del fondo espacial (paralaje y atmósfera)
+        var scrollingStars by remember { mutableStateOf(emptyList<BackgroundStar>()) }
+        var nebulae by remember { mutableStateOf(emptyList<NebulaCloud>()) }
+        var asteroids by remember { mutableStateOf(emptyList<SpaceAsteroid>()) }
         
         // Posicionar relativamente cuando las dimensiones del mapa estén listas
         LaunchedEffect(screenWidthPx, screenHeightPx) {
             if (screenWidthPx > 0f && screenHeightPx > 0f) {
                 playerPos = Offset(screenWidthPx * 0.15f, screenHeightPx * 0.5f)
                 enemyPos = Offset(screenWidthPx * 0.8f, screenHeightPx * 0.5f)
+
+                // Inicializar estrellas desplazables en base a 3 planos de profundidad
+                scrollingStars = List(45) { i ->
+                    val size = if (i < 20) {
+                        (1.0f + Math.random() * 0.5f).toFloat() // Plano lejano
+                    } else if (i < 35) {
+                        (1.8f + Math.random() * 0.7f).toFloat() // Plano medio
+                    } else {
+                        (2.8f + Math.random() * 1.0f).toFloat() // Plano cercano
+                    }
+
+                    val speed = if (i < 20) {
+                        (0.6f + Math.random() * 0.6f).toFloat()
+                    } else if (i < 35) {
+                        (1.6f + Math.random() * 1.0f).toFloat()
+                    } else {
+                        (3.2f + Math.random() * 1.8f).toFloat()
+                    }
+
+                    val alpha = if (i < 20) {
+                        (0.2f + Math.random() * 0.15f).toFloat()
+                    } else if (i < 35) {
+                        (0.4f + Math.random() * 0.15f).toFloat()
+                    } else {
+                        (0.6f + Math.random() * 0.2f).toFloat()
+                    }
+
+                    BackgroundStar(
+                        id = i.toLong(),
+                        position = Offset(
+                            (Math.random() * screenWidthPx).toFloat(),
+                            (Math.random() * screenHeightPx).toFloat()
+                        ),
+                        size = size,
+                        speed = speed,
+                        alpha = alpha
+                    )
+                }
+
+                // Inicializar 3 nubes nebulares gigantes y lentas en el fondo
+                nebulae = listOf(
+                    NebulaCloud(0L, Offset(screenWidthPx * 0.15f, screenHeightPx * 0.1f), 300f, Color(0xFFD946EF), 0.12f),
+                    NebulaCloud(1L, Offset(screenWidthPx * 0.55f, screenHeightPx * 0.4f), 360f, Color(0xFF6366F1), 0.08f),
+                    NebulaCloud(2L, Offset(screenWidthPx * 0.82f, screenHeightPx * 0.65f), 280f, Color(0xFF06B6D4), 0.15f)
+                )
+
+                // Inicializar cinturón de asteroides y cometas en el fondo
+                asteroids = List(6) { i ->
+                    val size = (20 + Math.random() * 20).toFloat()
+                    val speed = (0.7f + Math.random() * 0.8f).toFloat()
+                    val rotSpeed = (-2.0f + Math.random() * 4.0f).toFloat()
+                    SpaceAsteroid(
+                        id = i.toLong(),
+                        position = Offset(
+                            (Math.random() * screenWidthPx).toFloat(),
+                            (Math.random() * screenHeightPx).toFloat()
+                        ),
+                        size = size,
+                        speed = speed,
+                        rotation = (Math.random() * 360f).toFloat(),
+                        rotationSpeed = rotSpeed,
+                        emoji = if (i % 2 == 0) "🪨" else "☄️"
+                    )
+                }
             }
         }
 
@@ -210,14 +305,45 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.alpha > 0f }
 
-                // 5. Actualizar estrellas fugaces
+                // 5. Desplazar estrellas del fondo (Paralaje 3D)
+                scrollingStars = scrollingStars.map { s ->
+                    var nextX = s.position.x - s.speed
+                    if (nextX < -30f) {
+                        nextX = screenWidthPx + 30f
+                    }
+                    s.copy(position = Offset(nextX, s.position.y))
+                }
+
+                // 6. Desplazar nebulas gigantes
+                nebulae = nebulae.map { n ->
+                    var nextX = n.position.x - n.speed
+                    val sizePx = with(density) { n.size.dp.toPx() }
+                    if (nextX < -sizePx) {
+                        nextX = screenWidthPx + 50f
+                    }
+                    n.copy(position = Offset(nextX, n.position.y))
+                }
+
+                // 7. Desplazar y rotar asteroides / cometas
+                asteroids = asteroids.map { a ->
+                    var nextX = a.position.x - a.speed
+                    if (nextX < -150f) {
+                        nextX = screenWidthPx + 150f
+                    }
+                    a.copy(
+                        position = Offset(nextX, a.position.y),
+                        rotation = (a.rotation + a.rotationSpeed) % 360f
+                    )
+                }
+
+                // 8. Actualizar estrellas fugaces
                 if ((0..100).random() == 0 && shootingStars.size < 3) {
                     val startX = (300..screenWidthPx.toInt()).random().toFloat()
                     val startY = (0..200).random().toFloat()
                     shootingStars = shootingStars + ShootingStar(
                         id = nextId++,
                         position = Offset(startX, startY),
-                        velocity = Offset(-20f, 16f), // Rápido y diagonal abajo-izquierda
+                        velocity = Offset(-20f, 16f),
                         length = (80..160).random().toFloat(),
                         alpha = 1f
                     )
@@ -230,7 +356,7 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.alpha > 0f && it.position.x > -150f && it.position.y < screenHeightPx + 150f }
 
-                // 6. Decrementar temporizadores de disparo
+                // 9. Decrementar temporizadores de disparo
                 if (playerShootCooldown > 0) playerShootCooldown--
                 if (enemyShootCooldown > 0) {
                     enemyShootCooldown--
@@ -283,7 +409,7 @@ fun GameScreen(onExit: () -> Unit) {
                     enemyShootCooldown = 45 // Cada ~720ms
                 }
 
-                // 7. Mover proyectiles en pantalla
+                // 10. Mover proyectiles en pantalla
                 projectiles = projectiles.map { p ->
                     if (p.isSineWave) {
                         val nextAge = p.age + 1
@@ -295,12 +421,12 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }.filter { it.position.x in -100f..(screenWidthPx + 100f) && it.position.y in -100f..(screenHeightPx + 100f) }
 
-                // 8. IA del Jefe: Movimiento vertical en el lateral derecho
+                // 11. IA del Jefe: Movimiento vertical en el lateral derecho
                 val time = System.currentTimeMillis()
                 val targetY = hudHeightPx + (sin(time / 450.0).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
                 enemyPos = enemyPos.copy(y = targetY)
 
-                // 9. Detección de colisiones precisa usando Rect.overlaps
+                // 12. Detección de colisiones precisa usando Rect.overlaps
                 val playerRect = Rect(playerPos, Size(playerSizePx, playerSizePx))
                 val enemyRect = Rect(enemyPos, Size(enemySizePx, enemySizePx))
                 val projPlayerSizePx = with(density) { 16.dp.toPx() }
@@ -377,9 +503,48 @@ fun GameScreen(onExit: () -> Unit) {
             }
         }
 
-        // --- RENDERIZADO DE FONDO (PLANETAS Y ESTRELLAS) ---
+        // --- RENDERIZADO DE FONDO CAPA A CAPA (PARALAJE PROFUNDO) ---
 
-        // Planetas Retro-Cyber en el fondo
+        // 1. Nebulosas gigantes de fondo con degradados radiales ultra suaves
+        nebulae.forEach { n ->
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(n.position.x.roundToInt(), n.position.y.roundToInt()) }
+                    .size(n.size.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(n.color.copy(alpha = 0.07f), Color.Transparent)
+                        )
+                    )
+            )
+        }
+
+        // 2. Estrellas con desplazamiento por Parallax 3D
+        scrollingStars.forEach { s ->
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(s.position.x.roundToInt(), s.position.y.roundToInt()) }
+                    .size(s.size.dp)
+                    .alpha(s.alpha)
+                    .background(Color.White, CircleShape)
+            )
+        }
+
+        // 3. Cinturón de Asteroides y Cometas en deriva
+        asteroids.forEach { a ->
+            Text(
+                text = a.emoji,
+                fontSize = a.size.sp,
+                modifier = Modifier
+                    .offset { IntOffset(a.position.x.roundToInt(), a.position.y.roundToInt()) }
+                    .graphicsLayer {
+                        rotationZ = a.rotation
+                        alpha = 0.18f // Capa difusa trasera
+                    }
+            )
+        }
+
+        // 4. Planetas Holográficos Retro-Cyber
         Box(
             modifier = Modifier
                 .offset(x = screenWidthDp * 0.78f, y = 110.dp)
@@ -390,7 +555,6 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 )
         ) {
-            // Anillo de planeta simulado
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -410,26 +574,7 @@ fun GameScreen(onExit: () -> Unit) {
                 )
         )
 
-        // Estrellas de fondo con centelleo por GPU (graphicsLayer)
-        val time = System.currentTimeMillis()
-        repeat(35) { index ->
-            val starX = remember(index) { (Math.random() * 2000).toFloat().dp }
-            val starY = remember(index) { (Math.random() * 1000).toFloat().dp }
-            val starSize = remember(index) { (1..3).random().dp }
-            
-            Box(
-                modifier = Modifier
-                    .offset(x = starX, y = starY)
-                    .size(starSize)
-                    .graphicsLayer {
-                        // El centelleo varía por tiempo e índice de estrella
-                        alpha = 0.15f + (sin(time / 250.0 + index) * 0.5f + 0.5f).toFloat() * 0.6f
-                    }
-                    .background(Color.White, CircleShape)
-            )
-        }
-
-        // Renderizado de Estrellas Fugaces en Canvas
+        // 5. Renderizado de Estrellas Fugaces en Canvas
         Canvas(modifier = Modifier.fillMaxSize()) {
             shootingStars.forEach { s ->
                 val vMag = sqrt(s.velocity.x * s.velocity.x + s.velocity.y * s.velocity.y)
@@ -449,6 +594,8 @@ fun GameScreen(onExit: () -> Unit) {
                 )
             }
         }
+
+        // --- RENDERIZADO DE INTERFAZ Y OBJETOS DEL JUEGO ---
 
         // HUD (Cabecera superior con barras LED)
         Row(
