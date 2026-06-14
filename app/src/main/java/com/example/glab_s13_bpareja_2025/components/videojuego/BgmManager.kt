@@ -10,9 +10,13 @@ object BgmManager {
     private var audioTrack: AudioTrack? = null
     private var bgmThread: Thread? = null
 
+    @Volatile
+    var isRageMode = false
+
     fun start() {
         if (isPlaying) return
         isPlaying = true
+        isRageMode = false // Resetear al iniciar partida
         bgmThread = Thread {
             val sampleRate = 22050 // Tasa de muestreo óptima para sintetizador en segundo plano
             val bufferSize = AudioTrack.getMinBufferSize(
@@ -47,7 +51,7 @@ object BgmManager {
             audioTrack = track
             track.play()
 
-            // Línea de bajo retro espacial y progresiva (Tempo ~120 BPM)
+            // Línea de bajo retro espacial y progresiva
             val bassline = floatArrayOf(
                 110.00f, 110.00f, 130.81f, 110.00f, 
                 146.83f, 146.83f, 130.81f, 146.83f,
@@ -63,15 +67,16 @@ object BgmManager {
                 293.66f, 329.63f, 220.00f, 220.00f
             )
 
-            val stepDurMs = 250 // 250ms por nota en el arpegiador
-            val samplesPerStep = (stepDurMs * sampleRate) / 1000
-            val writeBuffer = FloatArray(samplesPerStep)
-
             var step = 0
             var phaseBass = 0.0
             var phaseLead = 0.0
 
             while (isPlaying) {
+                // Modificar el tempo en tiempo real si el jefe está enfurecido
+                val stepDurMs = if (isRageMode) 160 else 250 // Más rápido en modo furia (~187 BPM)
+                val samplesPerStep = (stepDurMs * sampleRate) / 1000
+                val writeBuffer = FloatArray(samplesPerStep)
+
                 val freqBass = bassline[step % bassline.size]
                 val freqLead = lead[step % lead.size]
 

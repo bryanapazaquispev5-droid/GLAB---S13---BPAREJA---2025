@@ -1,82 +1,99 @@
-# 🚀 Animaciones Jetpack Compose - Laboratorio 13
+# 🚀 Jetpack Compose Animations - Laboratory 13
 
-Una aplicación Android moderna desarrollada con **Jetpack Compose** que demuestra el poder de las APIs de animación para crear interfaces de usuario fluidas, interactivas y visualmente atractivas.
+A modern Android application developed with **Jetpack Compose** showcasing advanced animation APIs to create smooth, interactive, and visually stunning user interfaces.
 
-## 📱 Vista General
-Esta aplicación está organizada de forma modular y presenta 5 secciones interactivas que cubren desde conceptos básicos hasta una implementación compleja en un prototipo de videojuego.
-
----
-
-## ✨ Características Principales
-
-### 1. 👁️ Control de Visibilidad
-- Uso de `AnimatedVisibility` para entradas y salidas suaves.
-* **Efectos:** Combinación de `fadeIn` + `scaleIn` y `fadeOut` + `scaleOut`.
-* **Diseño:** Cuadro estilizado con degradados modernos.
-
-### 2. 🎨 Transiciones de Color
-- Implementación de `animateColorAsState`.
-* **Funcionalidad:** Cambio fluido entre los colores del tema y variantes personalizadas.
-* **Interactividad:** Botones que reflejan el estado del color actual.
-
-### 3. 📏 Dinámicas de Tamaño y Posición
-- Uso de `animateDpAsState` y `Modifier.offset`.
-* **Física:** Aplicación de `spring` (resortes) para un movimiento elástico y natural.
-* **Control:** Expansión y desplazamiento simultáneo de elementos UI.
-
-### 4. 🔄 Cambio de Contenido Dinámico
-- Implementación de `AnimatedContent`.
-* **Estados:** Manejo de estados de carga (`Loading`), éxito (`Content`) y error (`Error`).
-* **Transiciones:** Desplazamiento vertical con desvanecimiento entre estados.
-
-### 5. 🎮 Prototipo de Videojuego (Mini-Game: Cyber-Battle)
-- Ejecución en una ventana dedicada horizontal (`GameActivity` en Landscape).
-- Control fluido continuo mediante `Joystick` con calibración de densidad (`LocalDensity`).
-- **Múltiples APIs de Animación combinadas:**
-  * **Efecto Pop al recibir daño:** Animación de escala de resorte (`animateFloatAsState` con `dampingRatio = Spring.DampingRatioHighBouncy`) que aumenta momentáneamente de tamaño (efecto "pop") al impactar una bala y rebota a su estado original.
-  * **Textos de daño flotantes:** Partículas de texto dinámicas (`💥 -8% HP`, `⚡ IMPACTO!`, `🛡️ ESQUIVADO`) animadas frame a frame hacia arriba con desvanecimiento de opacidad (`alpha`).
-  * **Fondo con Paralaje 3D Activo:**
-    * **Estrellas en movimiento continuo:** 45 estrellas distribuidas en 3 planos de profundidad viajando a velocidades diferenciadas hacia la izquierda.
-    * **Nebulosas Dinámicas:** 3 nubes espaciales gigantes en tonos cian, violeta e índigo flotando muy lentamente en el fondo.
-    * **Cinturón de Asteroides:** Escombros espaciales (`🪨` y `☄️`) en rotación continua y deriva lineal.
-  * **Estrellas Fugaces:** Trazos rápidos en diagonal con gradientes lineales atenuantes en un Canvas dinámico.
-  * **Invulnerabilidad con Parpadeo:** Transición infinita (`rememberInfiniteTransition` con `animateFloat`) para oscilar el canal `alpha` del jugador mientras es inmune.
-  * **Trayectoria de Vuelo del Jefe:** Desplazamiento vertical ondulado continuo mediante `animateOffsetAsState` en base a una función senoidal.
-  * **HUD de salud LED neón:** Barras de vida que brillan mediante sombras pulsantes (`rememberInfiniteTransition`) y un gradiente tricolor que simula un núcleo incandescente.
-  * **Efectos de Sonido Sintetizados (8-bit Retro Audio):** Generación de ondas PCM float programáticas en tiempo real sin requerir archivos de audio pesados en almacenamiento.
-    * *Láser de Disparo*: Descenso de tono de onda cuadrada retro (`1000Hz` a `300Hz`).
-    * *Explosiones*: Ráfagas de ruido blanco con atenuación lineal para impactos del jefe.
-    * *Daño del Jugador*: Zumbido cuadrado de baja frecuencia.
-    * *Victoria*: Arpegio musical alegre ascendente (`Do-Mi-Sol-Do`).
-    * *Derrota*: Arpegio musical descendente y triste.
-  * **Visibilidad del Jefe:** Entrada y salida con `AnimatedVisibility` usando `fadeIn` + `scaleIn` y `fadeOut` + `scaleOut`.
+## 📱 Project Overview
+This application is organized in a highly modular fashion, presenting 5 interactive sections ranging from basic transition concepts to a complete arcade video game.
 
 ---
 
-## 🛠️ Tecnologías y Herramientas
-* **Lenguaje:** Kotlin 2.2.10
-* **UI Framework:** Jetpack Compose con Material Design 3
-* **Arquitectura:** Modular por paquetes (visibilidad, color, dimensiones, contenido, videojuego)
-* **Iconografía:** Material Icons Extended
-* **Build System:** Gradle (Kotlin DSL)
+## ✨ Key Features
+
+### 1. 👁️ Visibility Control
+- Uses `AnimatedVisibility` for elegant component entries and exits.
+- **Effects:** Combined `fadeIn` + `scaleIn` and `fadeOut` + `scaleOut` transitions.
+- **UI Design:** Stretched cards with modern background gradients.
+
+### 2. 🎨 Color Transitions
+- Implements `animateColorAsState` for smooth palette transitions.
+- **Functionality:** Real-time fluid color morphing matching the primary material theme.
+- **Interactive Controls:** Toggle buttons reflecting the current selected states.
+
+### 3. 📏 Size and Position Dynamics
+- Utilizes `animateDpAsState` and `Modifier.offset`.
+- **Physics Engine:** Custom `spring` configuration providing natural elastic bounces.
+- **Control:** Simultaneous scaling and coordinate shifting of UI components.
+
+### 4. 🔄 Dynamic Content Swapping
+- Implements `AnimatedContent` for clean UI state transitions.
+- **State Machine:** Handles `Loading`, `Content` (success), and `Error` layouts.
+- **Transitions:** Elegant vertical slide-and-fade animations.
+
+### 5. 🎮 Retro Arcade Video Game (Mini-Game: Cyber-Battle)
+- **Dedicated Windows:** Launches in a lock-oriented landscape view (`GameActivity`).
+- **Lag-Free Movement:** Joystick with screen-pixel density scaling (`LocalDensity`) updating at 60 FPS.
+- **Character Animation (Lottie JSON Integration):**
+  - Displays high-quality vector animations for both the player (`bueno.json`) and the boss (`malo.json`).
+  - Animates the Lottie composition loop infinitely at 60 FPS.
+- **Advanced Compose Animation Mashup:**
+  - **Impact Pop Scale Effect:** Leverages a spring-based scale animation (`animateFloatAsState` with `dampingRatio = Spring.DampingRatioHighBouncy`) that triggers a visual "pop" bounce whenever a bullet hits a target, immediately returning it to normal size.
+  - **Floating Damage/Text Particles:** Fades and scrolls custom indicators (`💥 -12% HP`, `⚡ IMPACT!`, `🛡️ DODGED`) upward frame by frame.
+  - **Active Parallax Space Background:**
+    - **Parallax Starfield:** 45 stars scrolling across 3 distinct speed layers.
+    - **Nebula Clouds:** 3 slow-moving gaseous dust clouds with radial color gradients (Cyan, Indigo, and Fuchsia).
+    - **Asteroid Belt:** Rotating space debris (`🪨` and `☄️`) with independent spin rates.
+  - **Shooting Stars:** Draws diagonal velocity vectors on a canvas layer with linear gradient tails.
+  - **HUD LED Health Bars:** Glowing indicators utilizing pulsing drop-shadows and vertical core-white LED gradients.
+  - **Programmatic 8-bit Sound Synthesizer:** Real-time PCM wave generation via `AudioTrack`:
+    - *Laser Shot*: Square wave sliding frequency pitch (`1000Hz` to `300Hz`).
+    - *Explosions*: Attenuated white noise bursts.
+    - *Damage Buzzer*: Low-frequency square wave.
+    - *Victory Arpeggio*: Upbeat ascending major chord progression.
+    - *Defeat Chime*: Descending somber minor melody.
+    - *Power-Up Sound*: Rapid ascending arpeggio.
+  - **Boss Rage Mode:** Activates at $\le$ 50% Boss HP, accelerating the BGM loop speed and triggering a 4-way diagonal laser spray pattern.
+  - **Combos & Scores:** Scoring multiplier linked to uninterrupted hits, saved locally via `SharedPreferences`.
+  - **Screen Shake:** Oscillates the main game frame on player hit.
+- **Balanced Game Difficulty:**
+  - Player lasers do **1% damage** (requires 100 hits to defeat the boss).
+  - Boss projectiles do **12% damage** (player is defeated in 8-9 hits).
+  - Faster and more aggressive bullet patterns in boss Rage Mode.
 
 ---
 
-## 📂 Estructura del Proyecto
+## 🛠️ Architecture & Technologies
+- **Language:** Kotlin 2.2.10
+- **UI Toolkit:** Jetpack Compose with Material Design 3
+- **Animations:** Lottie Compose 6.4.0
+- **Icons:** Material Icons Extended
+- **Build Tool:** Gradle (Kotlin DSL) with Version Catalogs
+
+---
+
+## 📂 Project Structure
 ```text
 com.example.glab_s13_bpareja_2025
 ├── components
-│   ├── color        # Ejercicio 2: Color
-│   ├── comun        # Tarjetas y elementos compartidos
-│   ├── contenido    # Ejercicio 4: Estados
-│   ├── dimensiones  # Ejercicio 3: Layout
-│   ├── videojuego   # Prototipo Final
-│   └── visibilidad  # Ejercicio 1: Intro
-└── MainActivity     # Orquestador principal
+│   ├── color        # Exercise 2: Color transitions
+│   ├── comun        # Shared common UI cards & Joystick
+│   ├── contenido    # Exercise 4: Content states
+│   ├── dimensiones  # Exercise 3: Size & position animations
+│   ├── videojuego   # Final Arcade Game
+│   │   ├── BgmManager.kt        # 2-Voice BGM loop tracker
+│   │   ├── GameBackground.kt    # Space Parallax Background
+│   │   ├── GameModels.kt        # Data structures & parameters
+│   │   ├── GameScreen.kt        # Main orchestrator & state loop
+│   │   ├── HealthBar.kt         # Custom neon LED health bar
+│   │   ├── HighScoreManager.kt  # Persistent SharedPreferences records
+│   │   ├── LottieCharacter.kt   # Lottie JSON player & boss renders
+│   │   ├── ParticleSystem.kt    # Sparks & explosion emitters
+│   │   └── SoundManager.kt      # Real-time PCM synthesizer
+│   └── visibilidad  # Exercise 1: Visibility entry/exit
+└── MainActivity     # Main application launcher
 ```
 
 ---
 
-## 👤 Autor
+## 👤 Credits
 **IVAN APAZA**  
-*Laboratorio 13 - Desarrollo de Aplicaciones Móviles*
+*Laboratorio 13 - Mobile Application Development*

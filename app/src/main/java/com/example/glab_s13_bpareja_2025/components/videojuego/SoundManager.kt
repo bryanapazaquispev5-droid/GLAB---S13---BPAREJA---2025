@@ -99,6 +99,27 @@ object SoundManager {
         }.start()
     }
 
+    // Sonido de recoger item de poder / Power-up (Fast ascending major arpeggio)
+    fun playPowerUp() {
+        Thread {
+            val noteDurSec = 0.08f
+            val numSamples = (noteDurSec * SAMPLE_RATE * 4).toInt()
+            val samples = FloatArray(numSamples)
+            val noteDuration = numSamples / 4
+            val freqs = floatArrayOf(440.00f, 554.37f, 659.25f, 880.00f) // Arpegio La Mayor (A, C#, E, A)
+            for (note in 0 until 4) {
+                val freq = freqs[note]
+                val startOffset = note * noteDuration
+                for (i in 0 until noteDuration) {
+                    val progressInNote = i.toFloat() / noteDuration
+                    val angle = 2.0 * PI * freq * (i.toFloat() / SAMPLE_RATE)
+                    samples[startOffset + i] = (if (sin(angle) > 0f) 0.12f else -0.12f) * (1f - progressInNote * 0.2f)
+                }
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
+
     // Arpegio ascendente de victoria (C -> E -> G -> C de 8 bits)
     fun playVictory() {
         Thread {

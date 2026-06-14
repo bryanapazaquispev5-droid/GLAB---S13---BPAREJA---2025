@@ -20,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -28,8 +27,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -40,65 +37,12 @@ import com.example.glab_s13_bpareja_2025.components.comun.Joystick
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.math.sin
-import kotlin.math.sqrt
-
-data class Projectile(
-    val id: Long,
-    val position: Offset,
-    val velocity: Offset,
-    val isPlayer: Boolean,
-    val isSineWave: Boolean = false,
-    val startY: Float = 0f,
-    val age: Int = 0
-)
-
-data class DamageText(
-    val id: Long,
-    val text: String,
-    val position: Offset,
-    val alpha: Float,
-    val color: Color
-)
-
-data class ShootingStar(
-    val id: Long,
-    val position: Offset,
-    val velocity: Offset,
-    val length: Float,
-    val alpha: Float
-)
-
-data class BackgroundStar(
-    val id: Long,
-    val position: Offset,
-    val size: Float,
-    val speed: Float,
-    val alpha: Float
-)
-
-data class NebulaCloud(
-    val id: Long,
-    val position: Offset,
-    val size: Float,
-    val color: Color,
-    val speed: Float
-)
-
-data class SpaceAsteroid(
-    val id: Long,
-    val position: Offset,
-    val size: Float,
-    val speed: Float,
-    val rotation: Float,
-    val rotationSpeed: Float,
-    val emoji: String
-)
 
 @Composable
 fun GameScreen(onExit: () -> Unit) {
     val context = LocalContext.current
     
-    // Bloquear a Horizontal e iniciar música de fondo (BGM)
+    // Lock to landscape and start background music (BGM)
     DisposableEffect(Unit) {
         val activity = context as? Activity
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -109,9 +53,22 @@ fun GameScreen(onExit: () -> Unit) {
         }
     }
 
+    // Screen shake state
+    var screenShakeTimer by remember { mutableStateOf(0) }
+    
+    val shakeOffset = if (screenShakeTimer > 0) {
+        Offset(
+            (-12..12).random().toFloat(),
+            (-12..12).random().toFloat()
+        )
+    } else {
+        Offset.Zero
+    }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
+            .offset { IntOffset(shakeOffset.x.roundToInt(), shakeOffset.y.roundToInt()) }
             .background(Color(0xFF020617))
     ) {
         val density = LocalDensity.current
@@ -121,36 +78,46 @@ fun GameScreen(onExit: () -> Unit) {
         val screenWidthDp = maxWidth
         val screenHeightDp = maxHeight
 
-        val playerSizeDp = 70.dp
-        val enemySizeDp = 120.dp
+        val playerSizeDp = 75.dp
+        val enemySizeDp = 125.dp
         val playerSizePx = with(density) { playerSizeDp.toPx() }
         val enemySizePx = with(density) { enemySizeDp.toPx() }
 
         val hudHeightDp = 100.dp
         val hudHeightPx = with(density) { hudHeightDp.toPx() }
 
+        val projPlayerSizePx = with(density) { 16.dp.toPx() }
+        val projEnemySizePx = with(density) { 24.dp.toPx() }
+
         var playerPos by remember { mutableStateOf(Offset(200f, 400f)) }
         var enemyPos by remember { mutableStateOf(Offset(1200f, 400f)) }
 
-        // Elementos dinámicos del fondo espacial (paralaje y atmósfera)
+        // Dynamic background space elements (parallax)
         var scrollingStars by remember { mutableStateOf(emptyList<BackgroundStar>()) }
         var nebulae by remember { mutableStateOf(emptyList<NebulaCloud>()) }
         var asteroids by remember { mutableStateOf(emptyList<SpaceAsteroid>()) }
+        var shootingStars by remember { mutableStateOf(emptyList<ShootingStar>()) }
         
-        // Posicionar relativamente cuando las dimensiones del mapa estén listas
+        // High score loading
+        var highScore by remember { mutableStateOf(0) }
+        LaunchedEffect(Unit) {
+            highScore = HighScoreManager.getHighScore(context)
+        }
+
+        // Relative positions when map dimensions are ready
         LaunchedEffect(screenWidthPx, screenHeightPx) {
             if (screenWidthPx > 0f && screenHeightPx > 0f) {
                 playerPos = Offset(screenWidthPx * 0.15f, screenHeightPx * 0.5f)
                 enemyPos = Offset(screenWidthPx * 0.8f, screenHeightPx * 0.5f)
 
-                // Inicializar estrellas desplazables en base a 3 planos de profundidad
+                // Initialize 3-layer parallax scrolling stars
                 scrollingStars = List(45) { i ->
                     val size = if (i < 20) {
-                        (1.0f + Math.random() * 0.5f).toFloat() // Plano lejano
+                        (1.0f + Math.random() * 0.5f).toFloat() // Far layer
                     } else if (i < 35) {
-                        (1.8f + Math.random() * 0.7f).toFloat() // Plano medio
+                        (1.8f + Math.random() * 0.7f).toFloat() // Mid layer
                     } else {
-                        (2.8f + Math.random() * 1.0f).toFloat() // Plano cercano
+                        (2.8f + Math.random() * 1.0f).toFloat() // Near layer
                     }
 
                     val speed = if (i < 20) {
@@ -181,14 +148,14 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }
 
-                // Inicializar 3 nubes nebulares gigantes y lentas en el fondo
+                // Initialize 3 huge, slow nebulas
                 nebulae = listOf(
                     NebulaCloud(0L, Offset(screenWidthPx * 0.15f, screenHeightPx * 0.1f), 300f, Color(0xFFD946EF), 0.12f),
                     NebulaCloud(1L, Offset(screenWidthPx * 0.55f, screenHeightPx * 0.4f), 360f, Color(0xFF6366F1), 0.08f),
                     NebulaCloud(2L, Offset(screenWidthPx * 0.82f, screenHeightPx * 0.65f), 280f, Color(0xFF06B6D4), 0.15f)
                 )
 
-                // Inicializar cinturón de asteroides y cometas en el fondo
+                // Initialize asteroid belt
                 asteroids = List(6) { i ->
                     val size = (20 + Math.random() * 20).toFloat()
                     val speed = (0.7f + Math.random() * 0.8f).toFloat()
@@ -220,38 +187,32 @@ fun GameScreen(onExit: () -> Unit) {
         var enemyShootCooldown by remember { mutableStateOf(0) }
         var playerShootCooldown by remember { mutableStateOf(0) }
 
-        // Estados para la invulnerabilidad (esquivas) y textos flotantes
+        // Dash, invulnerability, and floating numbers
         var isInvincible by remember { mutableStateOf(false) }
         var invincibleFramesLeft by remember { mutableStateOf(0) }
         var damageTexts by remember { mutableStateOf(emptyList<DamageText>()) }
-        
-        // Estado para las estrellas fugaces
-        var shootingStars by remember { mutableStateOf(emptyList<ShootingStar>()) }
 
-        // Estados y animaciones de resorte "pop" al recibir impactos de balas
+        // Spring animation targets for character impact pop
         var playerScaleTarget by remember { mutableStateOf(1f) }
         var enemyScaleTarget by remember { mutableStateOf(1f) }
+        val playerScale by animateFloatAsState(targetValue = playerScaleTarget, label = "playerScale")
+        val enemyScale by animateFloatAsState(targetValue = enemyScaleTarget, label = "enemyScale")
+
         var playerHitFramesLeft by remember { mutableStateOf(0) }
         var enemyHitFramesLeft by remember { mutableStateOf(0) }
 
-        val playerScale by animateFloatAsState(
-            targetValue = playerScaleTarget,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioHighBouncy,
-                stiffness = Spring.StiffnessMedium
-            ),
-            label = "playerScale"
-        )
-        val enemyScale by animateFloatAsState(
-            targetValue = enemyScaleTarget,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioHighBouncy,
-                stiffness = Spring.StiffnessMedium
-            ),
-            label = "enemyScale"
-        )
+        // Additional props
+        var particles by remember { mutableStateOf(emptyList<Particle>()) }
+        var powerUps by remember { mutableStateOf(emptyList<PowerUp>()) }
+        var shieldActive by remember { mutableStateOf(false) }
+        var doubleShotTimer by remember { mutableStateOf(0) }
+        var score by remember { mutableStateOf(0) }
+        var comboCount by remember { mutableStateOf(0) }
+        var comboResetTimer by remember { mutableStateOf(0) }
+        var isBossRage by remember { mutableStateOf(false) }
+        var time by remember { mutableStateOf(0L) }
 
-        // Animación de pulso infinito (Alpha) durante invulnerabilidad
+        // Infinitely pulsing alpha during player invulnerability
         val infiniteTransition = rememberInfiniteTransition(label = "playerPulse")
         val invincibleAlphaPulse by infiniteTransition.animateFloat(
             initialValue = 1f,
@@ -263,13 +224,14 @@ fun GameScreen(onExit: () -> Unit) {
             label = "invincibleAlpha"
         )
 
-        // Bucle del Juego (~60 FPS)
+        // Game Loop (~60 FPS)
         LaunchedEffect(isGameOver, screenWidthPx, screenHeightPx) {
             if (screenWidthPx <= 0f || screenHeightPx <= 0f) return@LaunchedEffect
             while (!isGameOver) {
                 delay(16)
+                time++
 
-                // 1. Mover jugador por joystick de manera continua y aplicar límites de mapa
+                // 1. Move player via Joystick with physics bounds
                 if (joystickVector != Offset.Zero) {
                     val speed = 14f
                     val nextX = (playerPos.x + joystickVector.x * speed).coerceIn(0f, screenWidthPx - playerSizePx)
@@ -277,7 +239,7 @@ fun GameScreen(onExit: () -> Unit) {
                     playerPos = Offset(nextX, nextY)
                 }
 
-                // 2. Gestionar invulnerabilidad
+                // 2. Manage invulnerability frames
                 if (invincibleFramesLeft > 0) {
                     invincibleFramesLeft--
                     if (invincibleFramesLeft == 0) {
@@ -285,7 +247,7 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }
 
-                // 3. Gestionar frames de escala "pop" para el jugador y enemigo
+                // 3. Manage pop scale frame times
                 if (playerHitFramesLeft > 0) {
                     playerHitFramesLeft--
                     if (playerHitFramesLeft == 0) {
@@ -299,7 +261,7 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }
 
-                // 4. Mover y atenuar textos de daño flotantes
+                // 4. Update floating combat texts
                 damageTexts = damageTexts.map {
                     it.copy(
                         position = it.position.copy(y = it.position.y - 2.5f),
@@ -307,7 +269,7 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.alpha > 0f }
 
-                // 5. Desplazar estrellas del fondo (Paralaje 3D)
+                // 5. Parallax scroll stars
                 scrollingStars = scrollingStars.map { s ->
                     var nextX = s.position.x - s.speed
                     if (nextX < -30f) {
@@ -316,7 +278,7 @@ fun GameScreen(onExit: () -> Unit) {
                     s.copy(position = Offset(nextX, s.position.y))
                 }
 
-                // 6. Desplazar nebulas gigantes
+                // 6. Scroll giant gaseous nebulas
                 nebulae = nebulae.map { n ->
                     var nextX = n.position.x - n.speed
                     val sizePx = with(density) { n.size.dp.toPx() }
@@ -326,7 +288,7 @@ fun GameScreen(onExit: () -> Unit) {
                     n.copy(position = Offset(nextX, n.position.y))
                 }
 
-                // 7. Desplazar y rotar asteroides / cometas
+                // 7. Scroll & rotate asteroids
                 asteroids = asteroids.map { a ->
                     var nextX = a.position.x - a.speed
                     if (nextX < -150f) {
@@ -338,7 +300,7 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }
 
-                // 8. Actualizar estrellas fugaces
+                // 8. Update shooting stars
                 if ((0..100).random() == 0 && shootingStars.size < 3) {
                     val startX = (300..screenWidthPx.toInt()).random().toFloat()
                     val startY = (0..200).random().toFloat()
@@ -358,46 +320,105 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.alpha > 0f && it.position.x > -150f && it.position.y < screenHeightPx + 150f }
 
-                // 9. Decrementar temporizadores de disparo
+                // 9. Update spark explosion particles
+                particles = particles.map { p ->
+                    p.copy(
+                        position = p.position + p.velocity,
+                        age = p.age + 1
+                    )
+                }.filter { it.age < it.maxAge }
+
+                // 10. Update & spawn floating power-ups
+                if (powerUps.isEmpty() && (0..750).random() == 0) {
+                    val pType = if (Math.random() < 0.5) PowerUpType.SHIELD else PowerUpType.DOUBLE_SHOT
+                    val startY = hudHeightPx + (Math.random() * (screenHeightPx - hudHeightPx - 100f)).toFloat()
+                    powerUps = powerUps + PowerUp(
+                        id = nextId++,
+                        position = Offset(screenWidthPx + 50f, startY),
+                        type = pType,
+                        size = 50f,
+                        speed = 3.5f
+                    )
+                }
+                powerUps = powerUps.map { p ->
+                    p.copy(position = p.position.copy(x = p.position.x - p.speed))
+                }.filter { it.position.x > -100f }
+
+                // 11. Handle Player & Power-Up collisions
+                val playerRect = Rect(playerPos, Size(playerSizePx, playerSizePx))
+                val collected = mutableListOf<PowerUp>()
+                powerUps.forEach { p ->
+                    val pRect = Rect(p.position, Size(p.size, p.size))
+                    if (playerRect.overlaps(pRect)) {
+                        collected.add(p)
+                        SoundManager.playPowerUp()
+                        when (p.type) {
+                            PowerUpType.SHIELD -> {
+                                shieldActive = true
+                                damageTexts = damageTexts + DamageText(
+                                    id = nextId++,
+                                    text = "🛡️ ESCUDO ACTIVADO",
+                                    position = playerPos.copy(x = playerPos.x - 20f, y = playerPos.y - 30f),
+                                    alpha = 1.2f,
+                                    color = Color(0xFF06B6D4)
+                                )
+                            }
+                            PowerUpType.DOUBLE_SHOT -> {
+                                doubleShotTimer = 480 // 8 seconds at 60 FPS
+                                damageTexts = damageTexts + DamageText(
+                                    id = nextId++,
+                                    text = "⚡ DOBLE LÁSER ACTIVADO",
+                                    position = playerPos.copy(x = playerPos.x - 20f, y = playerPos.y - 30f),
+                                    alpha = 1.2f,
+                                    color = Color(0xFFFFD700)
+                                )
+                            }
+                        }
+                    }
+                }
+                if (collected.isNotEmpty()) {
+                    powerUps = powerUps.filter { it !in collected }
+                }
+
+                // 12. Double shot timer
+                if (doubleShotTimer > 0) doubleShotTimer--
+
+                // 13. Combo reset timer
+                if (comboResetTimer > 0) {
+                    comboResetTimer--
+                    if (comboResetTimer == 0) {
+                        comboCount = 0
+                    }
+                }
+
+                // 14. Screen shake timer
+                if (screenShakeTimer > 0) screenShakeTimer--
+
+                // 15. Decrement shoot cooldowns
                 if (playerShootCooldown > 0) playerShootCooldown--
                 if (enemyShootCooldown > 0) {
                     enemyShootCooldown--
                 } else {
-                    // IA del Jefe: Elegir ataque aleatorio y disparar al jugador
-                    val attackType = (0..2).random()
+                    // Boss AI: Shoot dynamic bullets (accelerated/diagonal in Rage Mode)
+                    val attackType = if (isBossRage) (0..3).random() else (0..2).random()
                     when (attackType) {
-                        0 -> { // Disparo directo rápido
+                        0 -> { // Quick direct shot
                             val dy = if (playerPos.y > enemyPos.y) 3.5f else if (playerPos.y < enemyPos.y) -3.5f else 0f
                             projectiles = projectiles + Projectile(
                                 id = nextId++,
                                 position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
-                                velocity = Offset(-13f, dy),
+                                velocity = Offset(if (isBossRage) -17f else -13f, dy),
                                 isPlayer = false
                             )
                         }
-                        1 -> { // Ráfaga Triple en abanico
+                        1 -> { // Triple fan burst
                             projectiles = projectiles + listOf(
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
-                                    velocity = Offset(-11f, -4f),
-                                    isPlayer = false
-                                ),
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
-                                    velocity = Offset(-11f, 0f),
-                                    isPlayer = false
-                                ),
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
-                                    velocity = Offset(-11f, 4f),
-                                    isPlayer = false
-                                )
+                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -5f), false),
+                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 0f), false),
+                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 5f), false)
                             )
                         }
-                        2 -> { // Disparo ondulado (senoidal)
+                        2 -> { // Wavy sine shot
                             projectiles = projectiles + Projectile(
                                 id = nextId++,
                                 position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
@@ -407,11 +428,19 @@ fun GameScreen(onExit: () -> Unit) {
                                 startY = enemyPos.y + enemySizePx / 2f
                             )
                         }
+                        3 -> { // Rage attack: 4-way diagonal spray
+                            projectiles = projectiles + listOf(
+                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -8f), false),
+                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -4f), false),
+                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 4f), false),
+                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 8f), false)
+                            )
+                        }
                     }
-                    enemyShootCooldown = 45 // Cada ~720ms
+                    enemyShootCooldown = if (isBossRage) 22 else 45
                 }
 
-                // 10. Mover proyectiles en pantalla
+                // 16. Move active bullets
                 projectiles = projectiles.map { p ->
                     if (p.isSineWave) {
                         val nextAge = p.age + 1
@@ -423,17 +452,12 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }.filter { it.position.x in -100f..(screenWidthPx + 100f) && it.position.y in -100f..(screenHeightPx + 100f) }
 
-                // 11. IA del Jefe: Movimiento vertical en el lateral derecho
-                val time = System.currentTimeMillis()
-                val targetY = hudHeightPx + (sin(time / 450.0).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
+                // 17. Boss AI: vertical movement oscillating
+                val targetY = hudHeightPx + (sin(time / (if (isBossRage) 300.0 else 450.0)).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
                 enemyPos = enemyPos.copy(y = targetY)
 
-                // 12. Detección de colisiones precisa usando Rect.overlaps
-                val playerRect = Rect(playerPos, Size(playerSizePx, playerSizePx))
+                // 18. Exact Rect-overlap collision detection
                 val enemyRect = Rect(enemyPos, Size(enemySizePx, enemySizePx))
-                val projPlayerSizePx = with(density) { 16.dp.toPx() }
-                val projEnemySizePx = with(density) { 24.dp.toPx() }
-
                 val hitsPlayer = mutableListOf<Projectile>()
                 val hitsEnemy = mutableListOf<Projectile>()
 
@@ -454,27 +478,48 @@ fun GameScreen(onExit: () -> Unit) {
                 if (hitsPlayer.isNotEmpty()) {
                     projectiles = projectiles.filter { it !in hitsPlayer }
                     if (!isInvincible) {
-                        playerHealth = (playerHealth - 0.08f).coerceAtLeast(0f)
-                        isInvincible = true
-                        invincibleFramesLeft = 60 // 1 segundo de invencibilidad y parpadeo
-                        
-                        // Activar efecto visual de Pop (escala alta)
-                        playerScaleTarget = 1.35f
-                        playerHitFramesLeft = 8
+                        if (shieldActive) {
+                            shieldActive = false
+                            isInvincible = true
+                            invincibleFramesLeft = 40
+                            playerScaleTarget = 1.2f
+                            playerHitFramesLeft = 6
+                            
+                            particles = particles + ParticleSystem.createExplosion(nextId, hitsPlayer.first().position, Color.Cyan, 8)
+                            nextId += 8
+                            
+                            SoundManager.playExplosion()
+                            damageTexts = damageTexts + DamageText(
+                                id = nextId++,
+                                text = "🛡️ ESCUDO ROTO",
+                                position = playerPos.copy(x = playerPos.x + 10f, y = playerPos.y - 20f),
+                                alpha = 1f,
+                                color = Color.Cyan
+                            )
+                        } else {
+                            // Player takes increased damage (12% per hit for a higher difficulty challenge!)
+                            playerHealth = (playerHealth - 0.12f).coerceAtLeast(0f)
+                            isInvincible = true
+                            invincibleFramesLeft = 60
+                            playerScaleTarget = 1.35f
+                            playerHitFramesLeft = 8
+                            comboCount = 0 // Break combo
 
-                        // Sonido de golpe al jugador
-                        SoundManager.playPlayerHit()
+                            particles = particles + ParticleSystem.createExplosion(nextId, hitsPlayer.first().position, Color(0xFF06B6D4), 12)
+                            nextId += 12
 
-                        // Añadir texto flotante de impacto
-                        damageTexts = damageTexts + DamageText(
-                            id = nextId++,
-                            text = "💥 -8% HP",
-                            position = playerPos.copy(x = playerPos.x + 10f, y = playerPos.y - 20f),
-                            alpha = 1f,
-                            color = Color(0xFFEF4444)
-                        )
+                            SoundManager.playPlayerHit()
+                            damageTexts = damageTexts + DamageText(
+                                id = nextId++,
+                                text = "💥 -12% HP",
+                                position = playerPos.copy(x = playerPos.x + 10f, y = playerPos.y - 20f),
+                                alpha = 1f,
+                                color = Color(0xFFEF4444)
+                            )
+                            
+                            screenShakeTimer = 10
+                        }
                     } else {
-                        // Esquiva exitosa debido a inmunidad temporal
                         damageTexts = damageTexts + DamageText(
                             id = nextId++,
                             text = "🛡️ ESQUIVADO",
@@ -486,136 +531,120 @@ fun GameScreen(onExit: () -> Unit) {
                 }
                 
                 if (hitsEnemy.isNotEmpty()) {
-                    enemyHealth = (enemyHealth - 0.05f).coerceAtLeast(0f)
+                    // Player bullets do less damage (1% per hit instead of 2% for a longer, more challenging battle!)
+                    enemyHealth = (enemyHealth - 0.01f).coerceAtLeast(0f)
                     projectiles = projectiles.filter { it !in hitsEnemy }
                     
-                    // Activar efecto visual de Pop (escala alta) para el jefe
                     enemyScaleTarget = 1.25f
                     enemyHitFramesLeft = 8
 
-                    // Sonido de explosión al golpear al jefe
+                    comboCount++
+                    comboResetTimer = 120 // 2 seconds
+                    val hitScore = 100 * comboCount
+                    score += hitScore
+
+                    particles = particles + ParticleSystem.createExplosion(nextId, hitsEnemy.first().position, Color(0xFFD946EF), 10)
+                    nextId += 10
+
                     SoundManager.playExplosion()
 
-                    // Añadir texto de impacto al jefe
-                    damageTexts = damageTexts + DamageText(
-                        id = nextId++,
-                        text = "⚡ IMPACTO!",
-                        position = enemyPos.copy(x = enemyPos.x + (0..60).random() - 30f, y = enemyPos.y - 20f),
-                        alpha = 1f,
-                        color = Color(0xFFD946EF)
-                    )
+                    if (comboCount >= 2) {
+                        damageTexts = damageTexts + DamageText(
+                            id = nextId++,
+                            text = "Combo x$comboCount! +$hitScore",
+                            position = enemyPos.copy(x = enemyPos.x - 30f, y = enemyPos.y - 40f),
+                            alpha = 1f,
+                            color = Color(0xFFFFD700)
+                        )
+                    } else {
+                        damageTexts = damageTexts + DamageText(
+                            id = nextId++,
+                            text = "⚡ IMPACTO!",
+                            position = enemyPos.copy(x = enemyPos.x + (0..60).random() - 30f, y = enemyPos.y - 20f),
+                            alpha = 1f,
+                            color = Color(0xFFD946EF)
+                        )
+                    }
+
+                    // Activate boss rage mode when health <= 50%
+                    if (enemyHealth <= 0.5f && !isBossRage) {
+                        isBossRage = true
+                        BgmManager.isRageMode = true
+                        damageTexts = damageTexts + DamageText(
+                            id = nextId++,
+                            text = "🚨 ¡ALERTA: MODO FURIA! 🚨",
+                            position = Offset(screenWidthPx * 0.3f, screenHeightPx * 0.35f),
+                            alpha = 2f,
+                            color = Color.Red
+                        )
+                    }
                 }
 
                 if (playerHealth <= 0f) { 
                     isGameOver = true
                     isVictory = false
-                    BgmManager.stop() // Apagar música de fondo
-                    SoundManager.playDefeat() // Sonido triste de derrota
+                    BgmManager.stop()
+                    SoundManager.playDefeat()
                 }
                 if (enemyHealth <= 0f) { 
                     isGameOver = true
                     isVictory = true
-                    BgmManager.stop() // Apagar música de fondo
-                    SoundManager.playVictory() // Arpegio alegre de victoria
+                    BgmManager.stop()
+                    
+                    // Save High Score
+                    HighScoreManager.saveHighScore(context, score)
+                    highScore = HighScoreManager.getHighScore(context)
+                    
+                    SoundManager.playVictory()
                 }
             }
         }
 
-        // --- RENDERIZADO DE FONDO CAPA A CAPA (PARALAJE PROFUNDO) ---
-
-        // 1. Nebulosas gigantes de fondo con degradados radiales ultra suaves
-        nebulae.forEach { n ->
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(n.position.x.roundToInt(), n.position.y.roundToInt()) }
-                    .size(n.size.dp)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(n.color.copy(alpha = 0.07f), Color.Transparent)
-                        )
-                    )
-            )
-        }
-
-        // 2. Estrellas con desplazamiento por Parallax 3D
-        scrollingStars.forEach { s ->
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(s.position.x.roundToInt(), s.position.y.roundToInt()) }
-                    .size(s.size.dp)
-                    .alpha(s.alpha)
-                    .background(Color.White, CircleShape)
-            )
-        }
-
-        // 3. Cinturón de Asteroides y Cometas en deriva
-        asteroids.forEach { a ->
-            Text(
-                text = a.emoji,
-                fontSize = a.size.sp,
-                modifier = Modifier
-                    .offset { IntOffset(a.position.x.roundToInt(), a.position.y.roundToInt()) }
-                    .graphicsLayer {
-                        rotationZ = a.rotation
-                        alpha = 0.18f // Capa difusa trasera
-                    }
-            )
-        }
-
-        // 4. Planetas Holográficos Retro-Cyber
-        Box(
-            modifier = Modifier
-                .offset(x = screenWidthDp * 0.78f, y = 110.dp)
-                .size(160.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(Color(0xFFD946EF).copy(alpha = 0.12f), Color(0xFF6366F1).copy(alpha = 0.03f), Color.Transparent)
-                    )
-                )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .scale(1.3f, 0.35f)
-                    .border(2.dp, Color(0xFFD946EF).copy(alpha = 0.08f), CircleShape)
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .offset(x = 120.dp, y = screenHeightDp * 0.65f)
-                .size(100.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(Color(0xFF06B6D4).copy(alpha = 0.12f), Color(0xFF0F172A).copy(alpha = 0.02f), Color.Transparent)
-                    )
-                )
+        // RENDER SPATIAL PARALLAX BACKGROUND
+        GameBackground(
+            nebulae = nebulae,
+            scrollingStars = scrollingStars,
+            asteroids = asteroids,
+            shootingStars = shootingStars,
+            screenWidthDp = screenWidthDp,
+            screenHeightDp = screenHeightDp
         )
 
-        // 5. Renderizado de Estrellas Fugaces en Canvas
+        // RENDER FLOAT POWER-UPS
+        powerUps.forEach { p ->
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(p.position.x.roundToInt(), p.position.y.roundToInt()) }
+                    .size(42.dp)
+                    .shadow(12.dp, CircleShape, ambientColor = if (p.type == PowerUpType.SHIELD) Color.Cyan else Color.Yellow)
+                    .background(
+                        Brush.radialGradient(
+                            if (p.type == PowerUpType.SHIELD) listOf(Color(0xFF06B6D4), Color(0xFF020617)) else listOf(Color(0xFFFFB300), Color(0xFF020617))
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .border(2.dp, if (p.type == PowerUpType.SHIELD) Color.Cyan else Color.Yellow, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(if (p.type == PowerUpType.SHIELD) "🛡️" else "⚡", fontSize = 20.sp)
+            }
+        }
+
+        // RENDER DUST PARTICLES
         Canvas(modifier = Modifier.fillMaxSize()) {
-            shootingStars.forEach { s ->
-                val vMag = sqrt(s.velocity.x * s.velocity.x + s.velocity.y * s.velocity.y)
-                val unitOpposite = Offset(-s.velocity.x / vMag, -s.velocity.y / vMag)
-                val tailEnd = s.position + unitOpposite * s.length
-                
-                drawLine(
-                    brush = Brush.linearGradient(
-                        colors = listOf(Color.White.copy(alpha = s.alpha), Color.Transparent),
-                        start = s.position,
-                        end = tailEnd
-                    ),
-                    start = s.position,
-                    end = tailEnd,
-                    strokeWidth = 3.5f,
-                    cap = StrokeCap.Round
+            particles.forEach { p ->
+                val progress = p.age.toFloat() / p.maxAge
+                val size = 6f * (1f - progress)
+                val alpha = 1f - progress
+                drawCircle(
+                    color = p.color.copy(alpha = alpha),
+                    radius = size,
+                    center = p.position
                 )
             }
         }
 
-        // --- RENDERIZADO DE INTERFAZ Y OBJETOS DEL JUEGO ---
-
-        // HUD (Cabecera superior con barras LED)
+        // HUD OVERLAYS
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -625,17 +654,25 @@ fun GameScreen(onExit: () -> Unit) {
         ) {
             HealthBar(health = playerHealth, label = "PILOTO: IVAN APAZA", color = Color(0xFF06B6D4))
             
-            IconButton(
-                onClick = onExit,
-                modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)
-            ) {
-                Icon(Icons.Default.Close, null, tint = Color.White)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(
+                    onClick = onExit,
+                    modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)
+                ) {
+                    Icon(Icons.Default.Close, null, tint = Color.White)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text("SCORE: $score", color = Color(0xFFFFD700), fontSize = 16.sp, fontWeight = FontWeight.Black)
+                Text("RECORD: $highScore", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                if (comboCount >= 2) {
+                    Text("COMBO x$comboCount", color = Color(0xFFD946EF), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                }
             }
             
             HealthBar(health = enemyHealth, label = "OMEGA BOSS 👾", color = Color(0xFFEF4444))
         }
 
-        // Renderizado de Proyectiles
+        // RENDER BULLETS
         projectiles.forEach { p ->
             Box(
                 modifier = Modifier
@@ -651,21 +688,31 @@ fun GameScreen(onExit: () -> Unit) {
             )
         }
 
-        // Renderizado del Jugador (Con pulso de invulnerabilidad y escala dinámica pop)
+        // SHIELD CIRCLE OUTLINE
+        if (shieldActive) {
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset((playerPos.x - 10f).roundToInt(), (playerPos.y - 10f).roundToInt()) }
+                    .size((playerSizeDp.value + 20).dp)
+                    .border(3.dp, Brush.sweepGradient(listOf(Color.Cyan, Color.Transparent, Color.Cyan)), CircleShape)
+                    .shadow(15.dp, CircleShape, ambientColor = Color.Cyan)
+            )
+        }
+
+        // RENDER PLAYER (With dynamic scale bounce & Lottie JSON Character animation)
         Box(
             modifier = Modifier
                 .offset { IntOffset(playerPos.x.roundToInt(), playerPos.y.roundToInt()) }
                 .scale(playerScale)
                 .size(playerSizeDp)
                 .alpha(if (isInvincible) invincibleAlphaPulse else 1f)
-                .shadow(25.dp, CircleShape, ambientColor = Color(0xFF06B6D4))
-                .background(Brush.sweepGradient(listOf(Color(0xFF06B6D4), Color(0xFF6366F1))), CircleShape),
+                .shadow(25.dp, CircleShape, ambientColor = Color(0xFF06B6D4)),
             contentAlignment = Alignment.Center
         ) {
-            Text("🤺", fontSize = 36.sp)
+            PlayerLottieCharacter(modifier = Modifier.fillMaxSize())
         }
 
-        // Renderizado del Jefe
+        // RENDER BOSS (With Lottie JSON Character animation)
         val animatedEnemyPos by animateOffsetAsState(targetValue = enemyPos, label = "enemy")
         AnimatedVisibility(
             visible = enemyHealth > 0f,
@@ -677,16 +724,14 @@ fun GameScreen(onExit: () -> Unit) {
                 modifier = Modifier
                     .scale(enemyScale)
                     .size(enemySizeDp)
-                    .shadow(35.dp, RoundedCornerShape(24.dp), ambientColor = Color.Red)
-                    .background(Color(0xFF450a0a), RoundedCornerShape(24.dp))
-                    .border(3.dp, Color.Red, RoundedCornerShape(24.dp)),
+                    .shadow(35.dp, RoundedCornerShape(24.dp), ambientColor = Color.Red),
                 contentAlignment = Alignment.Center
             ) {
-                Text("👾", fontSize = 64.sp)
+                EnemyLottieCharacter(modifier = Modifier.fillMaxSize())
             }
         }
 
-        // Renderizado de Textos Flotantes de Daño
+        // RENDER FLOATING DAMAGE TEXTS
         damageTexts.forEach { dt ->
             Text(
                 text = dt.text,
@@ -700,7 +745,7 @@ fun GameScreen(onExit: () -> Unit) {
             )
         }
 
-        // Controles Táctiles (Joystick en la izquierda, Botón de disparo en la derecha)
+        // HUD CONTROLS (Joystick Left, Shoot Right)
         Box(modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp)) {
             Joystick(
                 modifier = Modifier.align(Alignment.BottomStart),
@@ -713,15 +758,33 @@ fun GameScreen(onExit: () -> Unit) {
             Button(
                 onClick = { 
                     if (playerShootCooldown == 0) {
-                        projectiles = projectiles + Projectile(
-                            id = nextId++,
-                            position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
-                            velocity = Offset(20f, 0f),
-                            isPlayer = true
-                        )
-                        playerShootCooldown = 8 // Cooldown corto para ráfaga rápida
+                        if (doubleShotTimer > 0) {
+                            // Double parallel lasers
+                            projectiles = projectiles + listOf(
+                                Projectile(
+                                    id = nextId++,
+                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx * 0.15f),
+                                    velocity = Offset(22f, 0f),
+                                    isPlayer = true
+                                ),
+                                Projectile(
+                                    id = nextId++,
+                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx * 0.75f),
+                                    velocity = Offset(22f, 0f),
+                                    isPlayer = true
+                                )
+                            )
+                        } else {
+                            // Simple laser
+                            projectiles = projectiles + Projectile(
+                                id = nextId++,
+                                position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                velocity = Offset(20f, 0f),
+                                isPlayer = true
+                            )
+                        }
+                        playerShootCooldown = 8 // short cooldown for fast firing
                         
-                        // Sonido láser de disparo del jugador
                         SoundManager.playLaser()
                     }
                 },
@@ -736,7 +799,7 @@ fun GameScreen(onExit: () -> Unit) {
             }
         }
 
-        // Pantalla de Derrota / Victoria
+        // DEFEAT / VICTORY OVERLAYS
         if (isGameOver) {
             Box(
                 modifier = Modifier
@@ -751,6 +814,22 @@ fun GameScreen(onExit: () -> Unit) {
                         color = if (isVictory) Color(0xFFD946EF) else Color.Red,
                         fontWeight = FontWeight.Black
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "PUNTUACIÓN FINAL: $score",
+                        color = Color(0xFFFFD700),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    if (score >= highScore && score > 0) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "🏆 ¡NUEVO RÉCORD DE PUNTUACIÓN! 🏆",
+                            color = Color(0xFF00E676),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
                     Spacer(modifier = Modifier.height(32.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Button(
@@ -776,9 +855,19 @@ fun GameScreen(onExit: () -> Unit) {
                                 enemyHitFramesLeft = 0
                                 damageTexts = emptyList()
                                 shootingStars = emptyList()
-                                isGameOver = false
                                 
-                                // Reiniciar música de fondo al reintentar
+                                particles = emptyList()
+                                powerUps = emptyList()
+                                shieldActive = false
+                                doubleShotTimer = 0
+                                score = 0
+                                comboCount = 0
+                                comboResetTimer = 0
+                                isBossRage = false
+                                screenShakeTimer = 0
+                                time = 0L
+
+                                isGameOver = false
                                 BgmManager.start()
                             },
                             shape = RoundedCornerShape(16.dp),
@@ -798,74 +887,6 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun HealthBar(health: Float, label: String, color: Color) {
-    val animatedHealth by animateFloatAsState(targetValue = health, label = "health")
-    
-    // Animación de pulso LED para el brillo neón
-    val ledTransition = rememberInfiniteTransition(label = "ledPulse")
-    val ledGlowRadius by ledTransition.animateFloat(
-        initialValue = 6f,
-        targetValue = 18f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "ledGlow"
-    )
-
-    Column(horizontalAlignment = Alignment.Start) {
-        Text(
-            text = label,
-            color = color,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Black,
-            modifier = Modifier.shadow(
-                elevation = (ledGlowRadius / 2).dp,
-                shape = CircleShape,
-                ambientColor = color,
-                spotColor = color
-            )
-        )
-        Spacer(Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .width(250.dp)
-                .height(18.dp)
-                .clip(RoundedCornerShape(9.dp))
-                .background(Color.White.copy(alpha = 0.03f))
-                .border(
-                    width = 1.5.dp,
-                    brush = Brush.horizontalGradient(
-                        listOf(color, color.copy(alpha = 0.2f))
-                    ),
-                    shape = RoundedCornerShape(9.dp)
-                )
-                .shadow(
-                    elevation = ledGlowRadius.dp,
-                    shape = RoundedCornerShape(9.dp),
-                    ambientColor = color,
-                    spotColor = color
-                )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(animatedHealth)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                color.copy(alpha = 0.5f),
-                                Color.White, // Núcleo LED incandescente
-                                color
-                            )
-                        )
-                    )
-            )
         }
     }
 }
