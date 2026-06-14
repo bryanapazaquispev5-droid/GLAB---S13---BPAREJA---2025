@@ -258,4 +258,42 @@ object SoundManager {
             playSynthSamples(samples)
         }.start()
     }
+
+    // Sonido de ralentizar el tiempo (Descending pitch sweep)
+    fun playTimeSlow() {
+        Thread {
+            val durationSec = 0.4f
+            val numSamples = (durationSec * SAMPLE_RATE).toInt()
+            val samples = FloatArray(numSamples)
+            for (i in 0 until numSamples) {
+                val progress = i.toFloat() / numSamples
+                // Frecuencia desciende de 600Hz a 150Hz
+                val freq = 600.0f - progress * 450.0f
+                val angle = 2.0 * PI * freq * (i.toFloat() / SAMPLE_RATE)
+                samples[i] = (sin(angle).toFloat() * 0.16f) * (1f - progress)
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
+
+    // Sonido de fuego rápido (Arpegio rápido agudo)
+    fun playRapidFire() {
+        Thread {
+            val noteDurSec = 0.05f
+            val numSamples = (noteDurSec * SAMPLE_RATE * 3).toInt()
+            val samples = FloatArray(numSamples)
+            val noteDuration = numSamples / 3
+            val freqs = floatArrayOf(587.33f, 698.46f, 880.00f) // Notas rápidas agudas
+            for (note in 0 until 3) {
+                val freq = freqs[note]
+                val startOffset = note * noteDuration
+                for (i in 0 until noteDuration) {
+                    val progressInNote = i.toFloat() / noteDuration
+                    val angle = 2.0 * PI * freq * (i.toFloat() / SAMPLE_RATE)
+                    samples[startOffset + i] = (if (sin(angle) > 0f) 0.12f else -0.12f) * (1f - progressInNote * 0.2f)
+                }
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
 }

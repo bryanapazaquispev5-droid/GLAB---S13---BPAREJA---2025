@@ -8,7 +8,9 @@ enum class PowerUpType {
     SHIELD,         // Otorga un escudo de energía cian protector
     DOUBLE_SHOT,    // Habilita disparo doble por 8 segundos
     HEALTH_RESTORE, // Restaura 25% de la barra de vida
-    TRIPLE_SHOT     // Habilita disparo triple (en abanico) por 6 segundos
+    TRIPLE_SHOT,    // Habilita disparo triple (en abanico) por 6 segundos
+    TIME_SLOW,      // Ralentiza el tiempo (enemigos y balas) al 50% por 5 segundos
+    RAPID_FIRE      // Fuego rápido continuo (cooldown reducido) por 6 segundos
 }
 
 // Proyectiles en pantalla

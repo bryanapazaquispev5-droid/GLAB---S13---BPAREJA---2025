@@ -207,6 +207,8 @@ fun GameScreen(onExit: () -> Unit) {
         var shieldActive by remember { mutableStateOf(false) }
         var doubleShotTimer by remember { mutableStateOf(0) }
         var tripleShotTimer by remember { mutableStateOf(0) }
+        var timeSlowTimer by remember { mutableStateOf(0) }
+        var rapidFireTimer by remember { mutableStateOf(0) }
         var drones by remember { mutableStateOf(emptyList<BossDrone>()) }
         var ultimateEnergy by remember { mutableStateOf(0f) }
         var ultimateBeamTimer by remember { mutableStateOf(0) }
@@ -241,7 +243,7 @@ fun GameScreen(onExit: () -> Unit) {
 
                 // 1. Move player via Joystick with physics bounds
                 if (joystickVector != Offset.Zero) {
-                    val speed = 14f
+                    val speed = 18f
                     val nextX = (playerPos.x + joystickVector.x * speed).coerceIn(0f, screenWidthPx - playerSizePx)
                     val nextY = (playerPos.y + joystickVector.y * speed).coerceIn(hudHeightPx, screenHeightPx - playerSizePx)
                     playerPos = Offset(nextX, nextY)
@@ -337,13 +339,14 @@ fun GameScreen(onExit: () -> Unit) {
                 }.filter { it.age < it.maxAge }
 
                 // 10. Update & spawn floating power-ups (Increased spawn frequency to make the battle more dynamic!)
-                if (powerUps.isEmpty() && (0..180).random() == 0) {
-                    // Spawning Health Restore with 50% probability as requested!
-                    val pType = when ((0..9).random()) {
-                        in 0..4 -> PowerUpType.HEALTH_RESTORE
-                        in 5..6 -> PowerUpType.SHIELD
-                        in 7..8 -> PowerUpType.DOUBLE_SHOT
-                        else -> PowerUpType.TRIPLE_SHOT
+                if (powerUps.isEmpty() && (0..120).random() == 0) {
+                    val pType = when ((0..14).random()) {
+                        in 0..3 -> PowerUpType.HEALTH_RESTORE
+                        in 4..6 -> PowerUpType.SHIELD
+                        in 7..9 -> PowerUpType.DOUBLE_SHOT
+                        in 10..11 -> PowerUpType.TRIPLE_SHOT
+                        in 12..13 -> PowerUpType.RAPID_FIRE
+                        else -> PowerUpType.TIME_SLOW
                     }
                     val startY = hudHeightPx + (Math.random() * (screenHeightPx - hudHeightPx - 100f)).toFloat()
                     powerUps = powerUps + PowerUp(
@@ -410,6 +413,28 @@ fun GameScreen(onExit: () -> Unit) {
                                     color = Color(0xFFD946EF)
                                 )
                             }
+                            PowerUpType.TIME_SLOW -> {
+                                SoundManager.playTimeSlow()
+                                timeSlowTimer = 300 // 5 seconds at 60 FPS
+                                damageTexts = damageTexts + DamageText(
+                                    id = nextId++,
+                                    text = "⏳ TIEMPO RALENTIZADO",
+                                    position = playerPos.copy(x = playerPos.x - 20f, y = playerPos.y - 30f),
+                                    alpha = 1.2f,
+                                    color = Color(0xFF818CF8)
+                                )
+                            }
+                            PowerUpType.RAPID_FIRE -> {
+                                SoundManager.playRapidFire()
+                                rapidFireTimer = 360 // 6 seconds at 60 FPS
+                                damageTexts = damageTexts + DamageText(
+                                    id = nextId++,
+                                    text = "🔥 FUEGO RÁPIDO",
+                                    position = playerPos.copy(x = playerPos.x - 20f, y = playerPos.y - 30f),
+                                    alpha = 1.2f,
+                                    color = Color(0xFFFF5722)
+                                )
+                            }
                         }
                     }
                 }
@@ -421,6 +446,8 @@ fun GameScreen(onExit: () -> Unit) {
                 if (doubleShotTimer > 0) doubleShotTimer--
                 if (tripleShotTimer > 0) tripleShotTimer--
                 if (ultimateBeamTimer > 0) ultimateBeamTimer--
+                if (timeSlowTimer > 0) timeSlowTimer--
+                if (rapidFireTimer > 0) rapidFireTimer--
 
                 // 13. Combo reset timer
                 if (comboResetTimer > 0) {
@@ -444,7 +471,8 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }
                 drones = drones.map { d ->
-                    var nextY = d.position.y + d.velocityY
+                    val speedFactor = if (timeSlowTimer > 0) 0.5f else 1.0f
+                    var nextY = d.position.y + d.velocityY * speedFactor
                     var nextVelY = d.velocityY
                     val droneSizePx = with(density) { d.size.dp.toPx() }
                     if (nextY < hudHeightPx || nextY > screenHeightPx - droneSizePx - 20f) {
@@ -477,7 +505,7 @@ fun GameScreen(onExit: () -> Unit) {
                             projectiles = projectiles + Projectile(
                                 id = nextId++,
                                 position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
-                                velocity = Offset(if (isBossRage) -17f else -13f, dy),
+                                velocity = Offset(if (isBossRage) -15f else -13f, dy),
                                 isPlayer = false
                             )
                         }
@@ -507,18 +535,20 @@ fun GameScreen(onExit: () -> Unit) {
                             )
                         }
                     }
-                    enemyShootCooldown = if (isBossRage) 22 else 45
+                    enemyShootCooldown = if (isBossRage) 28 else 45
                 }
 
                 // 16. Move active bullets
                 projectiles = projectiles.map { p ->
                     if (p.isSineWave) {
+                        val speedFactor = if (!p.isPlayer && timeSlowTimer > 0) 0.5f else 1.0f
                         val nextAge = p.age + 1
-                        val nextX = p.position.x + p.velocity.x
-                        val nextY = p.startY + sin(nextAge * 0.15f) * 85f
+                        val nextX = p.position.x + p.velocity.x * speedFactor
+                        val nextY = p.startY + sin(nextAge * 0.15f * speedFactor) * 85f
                         p.copy(position = Offset(nextX, nextY), age = nextAge)
                     } else {
-                        p.copy(position = p.position + p.velocity)
+                        val velocity = if (!p.isPlayer && timeSlowTimer > 0) p.velocity * 0.5f else p.velocity
+                        p.copy(position = p.position + velocity)
                     }
                 }.filter { it.position.x in -100f..(screenWidthPx + 100f) && it.position.y in -100f..(screenHeightPx + 100f) }
 
@@ -534,7 +564,8 @@ fun GameScreen(onExit: () -> Unit) {
 
                 when (bossState) {
                     BossState.WARNING -> {
-                        bossDashTimer--
+                        val dec = if (timeSlowTimer > 0 && time % 2L == 0L) 0 else 1
+                        bossDashTimer -= dec
                         if (bossDashTimer <= 0) {
                             bossState = BossState.DASHING
                             bossDashTimer = 35
@@ -543,9 +574,11 @@ fun GameScreen(onExit: () -> Unit) {
                         }
                     }
                     BossState.DASHING -> {
-                        bossDashTimer--
-                        // Dash fast to the left
-                        enemyPos = enemyPos.copy(x = enemyPos.x - 34f, y = bossDashTargetY)
+                        val dec = if (timeSlowTimer > 0 && time % 2L == 0L) 0 else 1
+                        bossDashTimer -= dec
+                        // Dash fast to the left (balanced from 34f to 28f, halved to 14f during time slow)
+                        val dashSpeed = if (timeSlowTimer > 0) 14f else 28f
+                        enemyPos = enemyPos.copy(x = enemyPos.x - dashSpeed, y = bossDashTargetY)
                         
                         // Collision check with player
                         if (enemyRect.overlaps(playerRect) && !isInvincible) {
@@ -573,15 +606,18 @@ fun GameScreen(onExit: () -> Unit) {
                         }
                     }
                     BossState.RETURNING -> {
-                        // Return to the right
-                        enemyPos = enemyPos.copy(x = (enemyPos.x + 20f).coerceAtMost(screenWidthPx * 0.8f), y = bossDashTargetY)
+                        // Return to the right (halved to 10f during time slow)
+                        val returnSpeed = if (timeSlowTimer > 0) 10f else 20f
+                        enemyPos = enemyPos.copy(x = (enemyPos.x + returnSpeed).coerceAtMost(screenWidthPx * 0.8f), y = bossDashTargetY)
                         if (enemyPos.x >= screenWidthPx * 0.8f) {
                             bossState = BossState.NORMAL
                         }
                     }
                     BossState.NORMAL -> {
+                        val speedFactor = if (timeSlowTimer > 0) 0.05f else 1.0f
                         val targetY = hudHeightPx + (sin(time / (if (isBossRage) 300.0 else 450.0)).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
-                        enemyPos = enemyPos.copy(x = screenWidthPx * 0.8f, y = targetY)
+                        val nextY = enemyPos.y + (targetY - enemyPos.y) * speedFactor
+                        enemyPos = enemyPos.copy(x = screenWidthPx * 0.8f, y = nextY)
                     }
                 }
 
@@ -852,12 +888,16 @@ fun GameScreen(onExit: () -> Unit) {
                 PowerUpType.DOUBLE_SHOT -> Color(0xFFFFB300) // Yellow
                 PowerUpType.HEALTH_RESTORE -> Color(0xFF00E676) // Green
                 PowerUpType.TRIPLE_SHOT -> Color(0xFFD946EF) // Fuchsia
+                PowerUpType.TIME_SLOW -> Color(0xFF818CF8) // Indigo
+                PowerUpType.RAPID_FIRE -> Color(0xFFFF5722) // Orange-red
             }
             val icon = when (p.type) {
                 PowerUpType.SHIELD -> "🛡️"
                 PowerUpType.DOUBLE_SHOT -> "⚡"
                 PowerUpType.HEALTH_RESTORE -> "❤️"
                 PowerUpType.TRIPLE_SHOT -> "🔱"
+                PowerUpType.TIME_SLOW -> "⏳"
+                PowerUpType.RAPID_FIRE -> "🔥"
             }
             Box(
                 modifier = Modifier
@@ -1170,7 +1210,7 @@ fun GameScreen(onExit: () -> Unit) {
                                     isPlayer = true
                                 )
                             }
-                            playerShootCooldown = 8 // short cooldown for fast firing
+                            playerShootCooldown = if (rapidFireTimer > 0) 3 else 8 // short cooldown for fast firing
                             
                             SoundManager.playLaser()
                         }
@@ -1248,6 +1288,8 @@ fun GameScreen(onExit: () -> Unit) {
                                 shieldActive = false
                                 doubleShotTimer = 0
                                 tripleShotTimer = 0
+                                timeSlowTimer = 0
+                                rapidFireTimer = 0
                                 drones = emptyList()
                                 ultimateEnergy = 0f
                                 ultimateBeamTimer = 0
