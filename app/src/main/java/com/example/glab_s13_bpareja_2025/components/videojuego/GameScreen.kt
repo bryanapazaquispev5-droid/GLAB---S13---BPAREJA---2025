@@ -98,11 +98,13 @@ data class SpaceAsteroid(
 fun GameScreen(onExit: () -> Unit) {
     val context = LocalContext.current
     
-    // Bloquear a Horizontal programáticamente como seguridad adicional
+    // Bloquear a Horizontal e iniciar música de fondo (BGM)
     DisposableEffect(Unit) {
         val activity = context as? Activity
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        BgmManager.start()
         onDispose {
+            BgmManager.stop()
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
@@ -507,11 +509,13 @@ fun GameScreen(onExit: () -> Unit) {
                 if (playerHealth <= 0f) { 
                     isGameOver = true
                     isVictory = false
+                    BgmManager.stop() // Apagar música de fondo
                     SoundManager.playDefeat() // Sonido triste de derrota
                 }
                 if (enemyHealth <= 0f) { 
                     isGameOver = true
                     isVictory = true
+                    BgmManager.stop() // Apagar música de fondo
                     SoundManager.playVictory() // Arpegio alegre de victoria
                 }
             }
@@ -773,6 +777,9 @@ fun GameScreen(onExit: () -> Unit) {
                                 damageTexts = emptyList()
                                 shootingStars = emptyList()
                                 isGameOver = false
+                                
+                                // Reiniciar música de fondo al reintentar
+                                BgmManager.start()
                             },
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF06B6D4))
