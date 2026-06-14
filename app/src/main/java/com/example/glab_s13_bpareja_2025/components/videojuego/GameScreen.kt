@@ -460,6 +460,9 @@ fun GameScreen(onExit: () -> Unit) {
                         playerScaleTarget = 1.35f
                         playerHitFramesLeft = 8
 
+                        // Sonido de golpe al jugador
+                        SoundManager.playPlayerHit()
+
                         // Añadir texto flotante de impacto
                         damageTexts = damageTexts + DamageText(
                             id = nextId++,
@@ -488,6 +491,9 @@ fun GameScreen(onExit: () -> Unit) {
                     enemyScaleTarget = 1.25f
                     enemyHitFramesLeft = 8
 
+                    // Sonido de explosión al golpear al jefe
+                    SoundManager.playExplosion()
+
                     // Añadir texto de impacto al jefe
                     damageTexts = damageTexts + DamageText(
                         id = nextId++,
@@ -498,8 +504,16 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }
 
-                if (playerHealth <= 0f) { isGameOver = true; isVictory = false }
-                if (enemyHealth <= 0f) { isGameOver = true; isVictory = true }
+                if (playerHealth <= 0f) { 
+                    isGameOver = true
+                    isVictory = false
+                    SoundManager.playDefeat() // Sonido triste de derrota
+                }
+                if (enemyHealth <= 0f) { 
+                    isGameOver = true
+                    isVictory = true
+                    SoundManager.playVictory() // Arpegio alegre de victoria
+                }
             }
         }
 
@@ -702,6 +716,9 @@ fun GameScreen(onExit: () -> Unit) {
                             isPlayer = true
                         )
                         playerShootCooldown = 8 // Cooldown corto para ráfaga rápida
+                        
+                        // Sonido láser de disparo del jugador
+                        SoundManager.playLaser()
                     }
                 },
                 modifier = Modifier

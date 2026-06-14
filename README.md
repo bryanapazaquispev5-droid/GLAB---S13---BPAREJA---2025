@@ -43,6 +43,12 @@ Esta aplicación está organizada de forma modular y presenta 5 secciones intera
   * **Invulnerabilidad con Parpadeo:** Transición infinita (`rememberInfiniteTransition` con `animateFloat`) para oscilar el canal `alpha` del jugador mientras es inmune.
   * **Trayectoria de Vuelo del Jefe:** Desplazamiento vertical ondulado continuo mediante `animateOffsetAsState` en base a una función senoidal.
   * **HUD de salud LED neón:** Barras de vida que brillan mediante sombras pulsantes (`rememberInfiniteTransition`) y un gradiente tricolor que simula un núcleo incandescente.
+  * **Efectos de Sonido Sintetizados (8-bit Retro Audio):** Generación de ondas PCM float programáticas en tiempo real sin requerir archivos de audio pesados en almacenamiento.
+    * *Láser de Disparo*: Descenso de tono de onda cuadrada retro (`1000Hz` a `300Hz`).
+    * *Explosiones*: Ráfagas de ruido blanco con atenuación lineal para impactos del jefe.
+    * *Daño del Jugador*: Zumbido cuadrado de baja frecuencia.
+    * *Victoria*: Arpegio musical alegre ascendente (`Do-Mi-Sol-Do`).
+    * *Derrota*: Arpegio musical descendente y triste.
   * **Visibilidad del Jefe:** Entrada y salida con `AnimatedVisibility` usando `fadeIn` + `scaleIn` y `fadeOut` + `scaleOut`.
 
 ---
