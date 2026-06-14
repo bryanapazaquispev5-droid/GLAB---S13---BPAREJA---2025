@@ -28,12 +28,14 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.togetherWith
-import androidx.compose.material3.CircularProgressIndicator
-
-enum class ScreenState { Loading, Content, Error }
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +58,117 @@ class MainActivity : ComponentActivity() {
                         SizeAndPositionAnimationScreen()
                         Divider()
                         ContentAnimationScreen()
+                        Divider()
+                        GamePrototypeScreen()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GamePrototypeScreen() {
+    var isPlaying by remember { mutableStateOf(false) }
+    var characterPos by remember { mutableStateOf(0.dp) }
+    var isAttacking by remember { mutableStateOf(false) }
+    var enemyHealth by remember { mutableStateOf(1f) }
+    var showEnemy by remember { mutableStateOf(true) }
+
+    val characterOffset by animateDpAsState(targetValue = characterPos)
+    val characterScale by animateFloatAsState(targetValue = if (isAttacking) 1.5f else 1f)
+    val healthWidth by animateFloatAsState(targetValue = enemyHealth)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+            .height(400.dp)
+            .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp))
+            .padding(16.dp)
+    ) {
+        Text("Final Exercise: Videogame Prototype", color = Color.White)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (!isPlaying) {
+            Button(onClick = { isPlaying = true }) {
+                Text("Start Game")
+            }
+        } else {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Button(onClick = { characterPos -= 20.dp }) { Text("<") }
+                Button(onClick = {
+                    isAttacking = true
+                    if (showEnemy) enemyHealth -= 0.2f
+                    if (enemyHealth <= 0f) showEnemy = false
+                }) {
+                    Text("ATTACK")
+                }
+                Button(onClick = { characterPos += 20.dp }) { Text(">") }
+            }
+            
+            // Reset attack state after animation
+            LaunchedEffect(isAttacking) {
+                if (isAttacking) {
+                    kotlinx.coroutines.delay(200)
+                    isAttacking = false
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Game Area
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Character
+                Box(
+                    modifier = Modifier
+                        .offset(x = characterOffset, y = 150.dp)
+                        .scale(characterScale)
+                        .size(50.dp)
+                        .background(Color.Cyan, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("P", color = Color.Black)
+                }
+
+                // Enemy
+                AnimatedVisibility(
+                    visible = showEnemy,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Enemy", color = Color.Red)
+                        LinearProgressIndicator(
+                            progress = { healthWidth },
+                            modifier = Modifier.width(60.dp),
+                            color = Color.Red
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .background(Color.Red, RoundedCornerShape(4.dp))
+                        )
+                    }
+                }
+                
+                if (!showEnemy) {
+                    Text(
+                        "VICTORY!",
+                        color = Color.Yellow,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                    Button(
+                        onClick = {
+                            showEnemy = true
+                            enemyHealth = 1f
+                            characterPos = 0.dp
+                        },
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    ) {
+                        Text("Restart")
                     }
                 }
             }
