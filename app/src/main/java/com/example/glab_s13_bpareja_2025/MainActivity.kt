@@ -28,6 +28,13 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.togetherWith
+import androidx.compose.material3.CircularProgressIndicator
+
+enum class ScreenState { Loading, Content, Error }
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +54,53 @@ class MainActivity : ComponentActivity() {
                         ColorAnimationScreen()
                         Divider()
                         SizeAndPositionAnimationScreen()
+                        Divider()
+                        ContentAnimationScreen()
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ContentAnimationScreen() {
+    var state by remember { mutableStateOf(ScreenState.Loading) }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Exercise 4: Content Animation")
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = {
+            state = when (state) {
+                ScreenState.Loading -> ScreenState.Content
+                ScreenState.Content -> ScreenState.Error
+                ScreenState.Error -> ScreenState.Loading
+            }
+        }) {
+            Text(text = "Next State")
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        AnimatedContent(
+            targetState = state,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
+            },
+            label = "ContentTransition"
+        ) { targetState ->
+            when (targetState) {
+                ScreenState.Loading -> {
+                    CircularProgressIndicator()
+                }
+                ScreenState.Content -> {
+                    Text("Success! Content Loaded.", color = Color.Green)
+                }
+                ScreenState.Error -> {
+                    Text("Error! Something went wrong.", color = Color.Red)
                 }
             }
         }
