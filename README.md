@@ -1,44 +1,65 @@
-# Laboratory 13: Animations in Jetpack Compose
+# 🚀 Animaciones Jetpack Compose - Laboratorio 13
 
-## Student Information
-- **Name:** BPAREJA
-- **Group:** [Your Group]
-- **Cycle:** [Your Cycle]
+Una aplicación Android moderna desarrollada con **Jetpack Compose** que demuestra el poder de las APIs de animación para crear interfaces de usuario fluidas, interactivas y visualmente atractivas.
 
-## Objectives
-- Practice the creation and customization of animations in Jetpack Compose.
-- Implement visibility, color, size, and position animations.
-- Use `AnimatedVisibility`, `animateColorAsState`, `animateDpAsState`, and `AnimatedContent`.
+## 📱 Vista General
+Esta aplicación está organizada de forma modular y presenta 5 secciones interactivas que cubren desde conceptos básicos hasta una implementación compleja en un prototipo de videojuego.
 
-## Exercises Completed
+---
 
-### Exercise 1: Visibility Animation
-- Implemented a toggle button to show/hide a blue box.
-- Used `AnimatedVisibility` with `fadeIn` and `fadeOut` effects.
+## ✨ Características Principales
 
-### Exercise 2: Color Animation
-- Implemented a button to transition between Blue and Green colors.
-- Used `animateColorAsState` with a `tween` animation specification.
+### 1. 👁️ Control de Visibilidad
+- Uso de `AnimatedVisibility` para entradas y salidas suaves.
+* **Efectos:** Combinación de `fadeIn` + `scaleIn` y `fadeOut` + `scaleOut`.
+* **Diseño:** Cuadro estilizado con degradados modernos.
 
-### Exercise 3: Size and Position Animation
-- Implemented a button to simultaneously change the size and position of a red box.
-- Used `animateDpAsState` for size and `Modifier.offset` for position.
+### 2. 🎨 Transiciones de Color
+- Implementación de `animateColorAsState`.
+* **Funcionalidad:** Cambio fluido entre los colores del tema y variantes personalizadas.
+* **Interactividad:** Botones que reflejan el estado del color actual.
 
-### Exercise 4: Content Transition
-- Implemented a state machine (Loading, Content, Error) using an enum.
-- Used `AnimatedContent` for smooth transitions between states with custom fade animations.
+### 3. 📏 Dinámicas de Tamaño y Posición
+- Uso de `animateDpAsState` y `Modifier.offset`.
+* **Física:** Aplicación de `spring` (resortes) para un movimiento elástico y natural.
+* **Control:** Expansión y desplazamiento simultáneo de elementos UI.
 
-### Final Exercise: Videogame Prototype
-- Developed a mini-game prototype combining all previous techniques.
-- Features character movement, attack animations (scaling), enemy health bar animation, and enemy appearance/disappearance effects.
+### 4. 🔄 Cambio de Contenido Dinámico
+- Implementación de `AnimatedContent`.
+* **Estados:** Manejo de estados de carga (`Loading`), éxito (`Content`) y error (`Error`).
+* **Transiciones:** Desplazamiento vertical con desvanecimiento entre estados.
 
-## Observation Question
+### 5. 🎮 Prototipo de Videojuego (Mini-Game)
+- Combinación avanzada de múltiples estados de animación.
+* **Jugabilidad:** Movimiento lateral, sistema de ataque (escalado) y barra de vida dinámica para el jefe.
+* **Estética:** Interfaz en modo oscuro con elementos de juego retro.
 
-**1. Selecciona una parte del laboratorio que te haya resultado más desafiante. Explica por qué fue difícil y qué hiciste para resolverlo.**
-*Respuesta:* La parte más desafiante fue el prototipo de videojuego combinado. Coordinar múltiples estados (ataque, movimiento, vida del enemigo) y asegurar que las animaciones se sintieran fluidas requirió un uso cuidadoso de `animate*AsState` y `LaunchedEffect` para manejar los efectos secundarios de las animaciones.
+---
 
-**2. Explica cómo usaste la IA para el desarrollo de este laboratorio.**
-*Respuesta:* Se utilizó la IA para estructurar el proyecto de Jetpack Compose, proporcionar plantillas de código para las APIs de animación específicas y ayudar a depurar las transiciones de estado entre las fases del juego.
+## 🛠️ Tecnologías y Herramientas
+* **Lenguaje:** Kotlin 2.2.10
+* **UI Framework:** Jetpack Compose con Material Design 3
+* **Arquitectura:** Modular por paquetes (visibilidad, color, dimensiones, contenido, videojuego)
+* **Iconografía:** Material Icons Extended
+* **Build System:** Gradle (Kotlin DSL)
 
-## Commits
-Commits were made for each step following best practices in English.
+---
+
+## 📂 Estructura del Proyecto
+```text
+com.example.glab_s13_bpareja_2025
+├── components
+│   ├── color        # Ejercicio 2: Color
+│   ├── comun        # Tarjetas y elementos compartidos
+│   ├── contenido    # Ejercicio 4: Estados
+│   ├── dimensiones  # Ejercicio 3: Layout
+│   ├── videojuego   # Prototipo Final
+│   └── visibilidad  # Ejercicio 1: Intro
+└── MainActivity     # Orquestador principal
+```
+
+---
+
+## 👤 Autor
+**BPAREJA**  
+*Laboratorio 13 - Desarrollo de Aplicaciones Móviles*
