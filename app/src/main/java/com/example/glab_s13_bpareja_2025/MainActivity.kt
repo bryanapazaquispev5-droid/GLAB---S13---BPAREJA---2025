@@ -257,26 +257,11 @@ fun GamePrototypeScreen() {
                     Text("P", color = Color.Black)
                 }
 
-                AnimatedVisibility(
+                EnemyCharacter(
                     visible = showEnemy,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
+                    health = healthWidth,
                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Enemy", color = Color.Red)
-                        LinearProgressIndicator(
-                            progress = { healthWidth },
-                            modifier = Modifier.width(60.dp),
-                            color = Color.Red
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .background(Color.Red, RoundedCornerShape(4.dp))
-                        )
-                    }
-                }
+                )
                 
                 if (!showEnemy) {
                     Text("VICTORY!", color = Color.Yellow, modifier = Modifier.align(Alignment.Center))
@@ -292,6 +277,30 @@ fun GamePrototypeScreen() {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun EnemyCharacter(visible: Boolean, health: Float, modifier: Modifier) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically(),
+        modifier = modifier
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Enemy", color = Color.Red)
+            LinearProgressIndicator(
+                progress = { health },
+                modifier = Modifier.width(60.dp),
+                color = Color.Red
+            )
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(Color.Red, RoundedCornerShape(4.dp))
+            )
         }
     }
 }
