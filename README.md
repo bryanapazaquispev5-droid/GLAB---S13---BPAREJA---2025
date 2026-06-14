@@ -51,17 +51,25 @@ This application is organized in a highly modular fashion, presenting 5 interact
     - *Victory Arpeggio*: Upbeat ascending major chord progression.
     - *Defeat Chime*: Descending somber minor melody.
     - *Power-Up Sound*: Rapid ascending arpeggio.
-  - **Boss Rage Mode:** Activates at $\le$ 50% Boss HP, accelerating the BGM loop speed and triggering a 4-way diagonal laser spray pattern.
-  - **Boss Drones (Minions):** The boss invokes up to 2 floating escort drones (`🛸`) that fly vertically and shoot green simple lasers every 80 frames. Hitting drones charges the Ultimate Gauge.
-  - **Boss Ram Dash Attack:** Every 7-8 seconds, the boss locks onto the player's y-coordinate, warning the player with a neon-yellow warning glow and double alarm beeps, then dashes horizontally at extreme speed. Getting hit inflicts **30% critical damage** and triggers heavy screen shake.
+  - **Boss Rage Mode (Two-Stage Progression):**
+    - **Phase 1 (Fury Mode):** Activates at $\le$ 70% Boss HP. Boss moves faster, direct bullet speeds increase to `-18f`, shoot cooldown reduces to `22` frames, BGM speed accelerates, and ram dash speed increases to `36f` (inflicting **35% damage** on hit). Boss invokes up to 3 drones.
+    - **Phase 2 (Extreme Fury Mode):** Activates at $\le$ 35% Boss HP. Boss moves vertically at a high frequency, direct bullet speeds increase to `-24f`, shoot cooldown is reduced to a frantic `13` frames, and ram dash speed reaches a super sonic **`46f`** (inflicting **45% critical damage**). The diagonal attack sprays **6 lasers simultaneously** in a massive fan, and the boss invokes up to 4 high-health drones (`5 HP` each).
+  - **Boss Drones (Minions):** The boss invokes floating escort drones (`🛸`) that fly vertically and shoot green simple lasers. Hitting drones charges the Ultimate Gauge.
+  - **Boss Ram Dash Attack:** Every 7-8 seconds, the boss locks onto the player's y-coordinate, warning the player with a neon-yellow/red warning glow and alarm beeps, then dashes horizontally at extreme speed.
   - **Ultimate Cyber-Beam:** Hitting the boss or drones charges a vertical energy gauge. When it reaches 100% capacity, a fuchsia `⚡ULT⚡` button lights up. Activating it releases a massive horizontal plasma beam for 3 seconds that vaporizes all active enemy bullets and deals continuous damage to the boss and drones.
   - **Combos & Scores:** Scoring multiplier linked to uninterrupted hits, saved locally via `SharedPreferences`.
   - **Screen Shake:** Oscillates the main game frame on player hit.
 - **Balanced Game Difficulty & Power-Ups:**
-  - Player lasers do **1% damage** (requires 100 hits to defeat the boss).
-  - Boss projectiles do **12% damage** (player is defeated in 8-9 hits).
-  - Escort drones must be shot down or destroyed by the ultimate beam (have 3 HP each).
-  - Spawn frequency of power-ups has been quadrupled, with a **50% probability weight** assigned to the Health Restore (`❤️`) power-up to keep players active in combat.
+  - **High Durability Boss:** Player standard lasers deal **0.3% damage** (requiring up to 333 hits to defeat the boss), and the ultimate beam deals `0.1%` damage per tick.
+  - **Scalable Player Damage:** Boss bullets deal scaling damage: `10%` normally, `14%` in Phase 1 Rage, and `18%` in Phase 2 Extreme Rage.
+  - **Highly Frequent and Concurrent Power-ups:** Power-ups spawn extremely often (1 check every 25 frames) and up to **5 items** can float on screen concurrently.
+  - **Equally Distributed Buffs:** All 6 positive power-ups have the same spawning probability (1/6):
+    - ❤️ **Health Restore (`HEALTH_RESTORE`)**: Restores 25% HP.
+    - 🛡️ **Shield (`SHIELD`)**: Blocks the next hit.
+    - ⚡ **Double Shot (`DOUBLE_SHOT`)**: Fires two parallel lasers.
+    - 🔱 **Triple Shot (`TRIPLE_SHOT`)**: Fires a three-laser fan.
+    - ⏳ **Time Slow (`TIME_SLOW`)**: Slows enemy bullets and boss/drone movements by 50% for 5 seconds.
+    - 🔥 **Rapid Fire (`RAPID_FIRE`)**: Reduces player laser cooldown to 3 frames for 6 seconds.
 
 ---
 
