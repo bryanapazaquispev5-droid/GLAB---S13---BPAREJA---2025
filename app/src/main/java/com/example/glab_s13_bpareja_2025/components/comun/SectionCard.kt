@@ -1,4 +1,4 @@
-package com.example.glab_s13_bpareja_2025.components
+package com.example.glab_s13_bpareja_2025.components.comun
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape

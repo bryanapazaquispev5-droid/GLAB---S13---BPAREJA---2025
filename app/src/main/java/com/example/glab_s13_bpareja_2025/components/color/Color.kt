@@ -1,4 +1,4 @@
-package com.example.glab_s13_bpareja_2025.components
+package com.example.glab_s13_bpareja_2025.components.color
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween

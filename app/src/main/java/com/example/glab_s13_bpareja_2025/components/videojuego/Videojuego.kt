@@ -1,4 +1,4 @@
-package com.example.glab_s13_bpareja_2025.components
+package com.example.glab_s13_bpareja_2025.components.videojuego
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring

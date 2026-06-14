@@ -16,7 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.glab_s13_bpareja_2025.components.*
+import com.example.glab_s13_bpareja_2025.components.color.ColorAnimationScreen
+import com.example.glab_s13_bpareja_2025.components.comun.SectionCard
+import com.example.glab_s13_bpareja_2025.components.contenido.ContentAnimationScreen
+import com.example.glab_s13_bpareja_2025.components.dimensiones.SizeAndPositionAnimationScreen
+import com.example.glab_s13_bpareja_2025.components.observaciones.ObservationScreen
+import com.example.glab_s13_bpareja_2025.components.videojuego.GamePrototypeScreen
+import com.example.glab_s13_bpareja_2025.components.visibilidad.VisibilityAnimationScreen
 import com.example.glab_s13_bpareja_2025.ui.theme.GLABS13BPAREJA2025Theme
 
 enum class ScreenState { Loading, Content, Error }

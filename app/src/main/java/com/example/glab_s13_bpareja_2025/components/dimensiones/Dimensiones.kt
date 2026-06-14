@@ -1,4 +1,4 @@
-package com.example.glab_s13_bpareja_2025.components
+package com.example.glab_s13_bpareja_2025.components.dimensiones
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
