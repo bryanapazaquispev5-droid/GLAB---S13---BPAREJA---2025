@@ -338,14 +338,14 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.age < it.maxAge }
 
-                // 10. Update & spawn floating power-ups (Increased spawn frequency to make the battle more dynamic!)
-                if (powerUps.isEmpty() && (0..120).random() == 0) {
-                    val pType = when ((0..14).random()) {
-                        in 0..3 -> PowerUpType.HEALTH_RESTORE
-                        in 4..6 -> PowerUpType.SHIELD
-                        in 7..9 -> PowerUpType.DOUBLE_SHOT
-                        in 10..11 -> PowerUpType.TRIPLE_SHOT
-                        in 12..13 -> PowerUpType.RAPID_FIRE
+                // 10. Update & spawn floating power-ups (Highly frequent spawns for all player buffs!)
+                if (powerUps.isEmpty() && (0..45).random() == 0) {
+                    val pType = when ((0..5).random()) {
+                        0 -> PowerUpType.HEALTH_RESTORE
+                        1 -> PowerUpType.SHIELD
+                        2 -> PowerUpType.DOUBLE_SHOT
+                        3 -> PowerUpType.TRIPLE_SHOT
+                        4 -> PowerUpType.RAPID_FIRE
                         else -> PowerUpType.TIME_SLOW
                     }
                     val startY = hudHeightPx + (Math.random() * (screenHeightPx - hudHeightPx - 100f)).toFloat()
@@ -505,7 +505,7 @@ fun GameScreen(onExit: () -> Unit) {
                             projectiles = projectiles + Projectile(
                                 id = nextId++,
                                 position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
-                                velocity = Offset(if (isBossRage) -15f else -13f, dy),
+                                velocity = Offset(if (isBossRage) -17f else -13f, dy),
                                 isPlayer = false
                             )
                         }
@@ -535,7 +535,7 @@ fun GameScreen(onExit: () -> Unit) {
                             )
                         }
                     }
-                    enemyShootCooldown = if (isBossRage) 28 else 45
+                    enemyShootCooldown = if (isBossRage) 22 else 45
                 }
 
                 // 16. Move active bullets
@@ -576,8 +576,8 @@ fun GameScreen(onExit: () -> Unit) {
                     BossState.DASHING -> {
                         val dec = if (timeSlowTimer > 0 && time % 2L == 0L) 0 else 1
                         bossDashTimer -= dec
-                        // Dash fast to the left (balanced from 34f to 28f, halved to 14f during time slow)
-                        val dashSpeed = if (timeSlowTimer > 0) 14f else 28f
+                        // Dash fast to the left (restored to 34f, halved to 17f during time slow)
+                        val dashSpeed = if (timeSlowTimer > 0) 17f else 34f
                         enemyPos = enemyPos.copy(x = enemyPos.x - dashSpeed, y = bossDashTargetY)
                         
                         // Collision check with player
