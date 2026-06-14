@@ -12,38 +12,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.example.glab_s13_bpareja_2025.components.comun.AnimatedOutlinedButton
 
 @Composable
 fun SizeAndPositionAnimationScreen() {
     var isExpanded by remember { mutableStateOf(false) }
     val size by animateDpAsState(
-        targetValue = if (isExpanded) 160.dp else 100.dp,
+        targetValue = if (isExpanded) 180.dp else 100.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "Size"
     )
     val offset by animateDpAsState(
-        targetValue = if (isExpanded) 40.dp else 0.dp,
+        targetValue = if (isExpanded) 50.dp else 0.dp,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "Offset"
     )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        OutlinedButton(
-            onClick = { isExpanded = !isExpanded },
-            shape = RoundedCornerShape(12.dp)
+        AnimatedOutlinedButton(
+            onClick = { isExpanded = !isExpanded }
         ) {
             Text(if (isExpanded) "Restablecer Diseño" else "Expandir Diseño")
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        Box(modifier = Modifier.height(200.dp).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        Box(modifier = Modifier.height(240.dp).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Box(
                 modifier = Modifier
                     .offset(x = offset, y = offset)
                     .size(size)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.secondary)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.tertiary)
             )
         }
     }

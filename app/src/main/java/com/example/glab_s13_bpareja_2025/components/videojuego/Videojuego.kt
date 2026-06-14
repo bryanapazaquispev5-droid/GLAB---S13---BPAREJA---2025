@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.glab_s13_bpareja_2025.components.comun.AnimatedButton
 import kotlinx.coroutines.delay
 
 @Composable
@@ -40,7 +41,7 @@ fun GamePrototypeScreen() {
         label = "CharPos"
     )
     val characterScale by animateFloatAsState(
-        targetValue = if (isAttacking) 1.5f else 1f,
+        targetValue = if (isAttacking) 1.6f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy),
         label = "CharScale"
     )
@@ -50,59 +51,55 @@ fun GamePrototypeScreen() {
         label = "Health"
     )
 
-    // Parallax background simulation
-    val bgOffset by animateDpAsState(targetValue = characterPos / 3, label = "BgOffset")
+    val bgOffset by animateDpAsState(targetValue = characterPos / 4, label = "BgOffset")
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF080808))
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(32.dp))
+            .background(Color(0xFF020617))
+            .border(2.dp, Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFFD946EF))), RoundedCornerShape(32.dp))
             .padding(16.dp)
     ) {
         if (!isPlaying) {
-            Button(
+            AnimatedButton(
                 onClick = { isPlaying = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE)),
-                shape = RoundedCornerShape(12.dp)
+                containerColor = Color(0xFF6366F1)
             ) {
-                Text("INICIAR AVENTURA", color = Color.White, fontWeight = FontWeight.Black)
+                Text("INICIAR AVENTURA", fontWeight = FontWeight.Black)
             }
         } else {
-            // Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
             ) {
                 IconButton(
-                    onClick = { characterPos -= 20.dp },
-                    modifier = Modifier.background(Color(0xFF1E1E1E), CircleShape)
+                    onClick = { characterPos -= 25.dp },
+                    modifier = Modifier.background(Color(0xFF1E293B), CircleShape).size(56.dp)
                 ) {
-                    Icon(Icons.Default.ArrowBack, null, tint = Color.Cyan)
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFF06B6D4))
                 }
                 
-                Button(
+                AnimatedButton(
                     onClick = {
                         isAttacking = true
-                        if (showEnemy) enemyHealth = (enemyHealth - 0.2f).coerceAtLeast(0f)
+                        if (showEnemy) enemyHealth = (enemyHealth - 0.25f).coerceAtLeast(0f)
                         if (enemyHealth <= 0f) showEnemy = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.height(48.dp)
+                    containerColor = Color(0xFFEF4444),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Bolt, null)
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text("ATACAR", fontWeight = FontWeight.ExtraBold)
                 }
                 
                 IconButton(
-                    onClick = { characterPos += 20.dp },
-                    modifier = Modifier.background(Color(0xFF1E1E1E), CircleShape)
+                    onClick = { characterPos += 25.dp },
+                    modifier = Modifier.background(Color(0xFF1E293B), CircleShape).size(56.dp)
                 ) {
-                    Icon(Icons.Default.ArrowForward, null, tint = Color.Cyan)
+                    Icon(Icons.Default.ArrowForward, null, tint = Color(0xFF06B6D4))
                 }
             }
             
@@ -113,16 +110,15 @@ fun GamePrototypeScreen() {
                 }
             }
 
-            // Stage
             Box(
                 modifier = Modifier
-                    .height(220.dp)
+                    .height(240.dp)
                     .fillMaxWidth()
-                    .padding(top = 16.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF0D0D0D))
+                    .padding(top = 20.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF0F172A))
             ) {
-                // Background Grid/Stars (Static Parallax)
+                // Cyber Background
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -130,7 +126,7 @@ fun GamePrototypeScreen() {
                         .background(
                             Brush.linearGradient(
                                 0.0f to Color.Transparent,
-                                0.5f to Color.White.copy(alpha = 0.02f),
+                                0.5f to Color(0xFF6366F1).copy(alpha = 0.05f),
                                 1.0f to Color.Transparent
                             )
                         )
@@ -139,36 +135,35 @@ fun GamePrototypeScreen() {
                 // Character
                 Box(
                     modifier = Modifier
-                        .offset(x = characterOffset, y = 100.dp)
+                        .offset(x = characterOffset, y = 110.dp)
                         .scale(characterScale)
-                        .size(56.dp)
-                        .shadow(10.dp, CircleShape, spotColor = Color.Cyan)
+                        .size(64.dp)
+                        .shadow(15.dp, CircleShape, ambientColor = Color(0xFF06B6D4))
                         .background(
-                            Brush.sweepGradient(listOf(Color(0xFF03DAC6), Color(0xFF018786))),
+                            Brush.sweepGradient(listOf(Color(0xFF06B6D4), Color(0xFF6366F1))),
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("🤺", fontSize = 28.sp)
+                    Text("🤺", fontSize = 32.sp)
                 }
 
                 // Enemy
-                EnemyCharacterUltraModern(
+                EnemyCharacterCyber(
                     visible = showEnemy,
                     health = healthProgress,
                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp)
                 )
                 
-                // Attack FX
                 if (isAttacking) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .offset(x = characterOffset + 40.dp, y = 10.dp)
-                            .size(100.dp)
+                            .offset(x = characterOffset + 45.dp, y = 20.dp)
+                            .size(120.dp)
                             .background(
                                 Brush.radialGradient(
-                                    listOf(Color.White.copy(alpha = 0.3f), Color.Transparent)
+                                    listOf(Color.White.copy(alpha = 0.4f), Color.Transparent)
                                 )
                             )
                     )
@@ -176,21 +171,17 @@ fun GamePrototypeScreen() {
 
                 if (!showEnemy) {
                     Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.align(Alignment.Center).fillMaxSize().background(Color.Black.copy(alpha = 0.6f)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             "VICTORIA",
-                            color = Color(0xFFFFD600),
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Black,
-                            modifier = Modifier.shadow(
-                                elevation = 20.dp,
-                                shape = RoundedCornerShape(0.dp),
-                                ambientColor = Color.Black
-                            )
+                            color = Color(0xFFD946EF),
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Black
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
                         TextButton(
                             onClick = {
                                 showEnemy = true
@@ -200,8 +191,8 @@ fun GamePrototypeScreen() {
                             colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
                         ) {
                             Icon(Icons.Default.RestartAlt, null)
-                            Spacer(Modifier.width(4.dp))
-                            Text("VOLVER A JUGAR", fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(8.dp))
+                            Text("REINTENTAR", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                     }
                 }
@@ -211,39 +202,40 @@ fun GamePrototypeScreen() {
 }
 
 @Composable
-fun EnemyCharacterUltraModern(visible: Boolean, health: Float, modifier: Modifier) {
+fun EnemyCharacterCyber(visible: Boolean, health: Float, modifier: Modifier) {
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(1000)) + slideInHorizontally { it },
-        exit = fadeOut(tween(500)) + scaleOut(tween(500)),
+        exit = fadeOut(tween(500)) + scaleOut(tween(800)),
         modifier = modifier
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
                     progress = { health },
-                    modifier = Modifier.size(80.dp),
-                    color = Color.Red,
-                    strokeWidth = 4.dp,
-                    trackColor = Color.White.copy(alpha = 0.1f)
+                    modifier = Modifier.size(90.dp),
+                    color = Color(0xFFEF4444),
+                    strokeWidth = 6.dp,
+                    trackColor = Color.White.copy(alpha = 0.05f)
                 )
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF2D0000))
-                        .border(2.dp, Color.Red.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                        .size(68.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF450a0a))
+                        .border(2.dp, Color(0xFFEF4444), RoundedCornerShape(20.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("👾", fontSize = 34.sp)
+                    Text("👾", fontSize = 38.sp)
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
-                "NIVEL 99",
-                color = Color.Red,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Black
+                "BOSS LVL 99",
+                color = Color(0xFFEF4444),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
             )
         }
     }
