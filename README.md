@@ -29,10 +29,16 @@ Esta aplicación está organizada de forma modular y presenta 5 secciones intera
 * **Estados:** Manejo de estados de carga (`Loading`), éxito (`Content`) y error (`Error`).
 * **Transiciones:** Desplazamiento vertical con desvanecimiento entre estados.
 
-### 5. 🎮 Prototipo de Videojuego (Mini-Game)
-- Combinación avanzada de múltiples estados de animación.
-* **Jugabilidad:** Movimiento lateral, sistema de ataque (escalado) y barra de vida dinámica para el jefe.
-* **Estética:** Interfaz en modo oscuro con elementos de juego retro.
+### 5. 🎮 Prototipo de Videojuego (Mini-Game: Cyber-Battle)
+- Ejecución en una ventana dedicada horizontal (`GameActivity` en Landscape).
+- Control fluido continuo mediante `Joystick` con calibración de densidad (`LocalDensity`).
+- **Múltiples APIs de Animación combinadas:**
+  * **Efecto Pop al recibir daño:** Animación de escala de resorte (`animateFloatAsState` con `dampingRatio = Spring.DampingRatioHighBouncy`) que aumenta momentáneamente de tamaño (efecto "pop") al impactar una bala y rebota a su estado original.
+  * **Textos de daño flotantes:** Partículas de texto dinámicas (`💥 -8% HP`, `⚡ IMPACTO!`, `🛡️ ESQUIVADO`) animadas frame a frame hacia arriba con desvanecimiento de opacidad (`alpha`).
+  * **Invulnerabilidad con Parpadeo:** Transición infinita (`rememberInfiniteTransition` con `animateFloat`) para oscilar el canal `alpha` del jugador mientras es inmune.
+  * **Trayectoria de Vuelo del Jefe:** Desplazamiento vertical ondulado continuo mediante `animateOffsetAsState` en base a una función senoidal.
+  * **HUD de salud adaptativo:** Transiciones fluidas en las barras de vida usando `animateFloatAsState`.
+  * **Visibilidad del Jefe:** Entrada y salida con `AnimatedVisibility` usando `fadeIn` + `scaleIn` y `fadeOut` + `scaleOut`.
 
 ---
 

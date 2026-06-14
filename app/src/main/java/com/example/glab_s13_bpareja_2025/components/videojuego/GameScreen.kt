@@ -113,6 +113,29 @@ fun GameScreen(onExit: () -> Unit) {
         var invincibleFramesLeft by remember { mutableStateOf(0) }
         var damageTexts by remember { mutableStateOf(emptyList<DamageText>()) }
 
+        // Estados y animaciones de resorte "pop" al recibir impactos de balas
+        var playerScaleTarget by remember { mutableStateOf(1f) }
+        var enemyScaleTarget by remember { mutableStateOf(1f) }
+        var playerHitFramesLeft by remember { mutableStateOf(0) }
+        var enemyHitFramesLeft by remember { mutableStateOf(0) }
+
+        val playerScale by animateFloatAsState(
+            targetValue = playerScaleTarget,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioHighBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            label = "playerScale"
+        )
+        val enemyScale by animateFloatAsState(
+            targetValue = enemyScaleTarget,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioHighBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            label = "enemyScale"
+        )
+
         // Animación de pulso infinito (Alpha) durante invulnerabilidad
         val infiniteTransition = rememberInfiniteTransition(label = "playerPulse")
         val invincibleAlphaPulse by infiniteTransition.animateFloat(
@@ -147,7 +170,21 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }
 
-                // 3. Mover y atenuar textos de daño flotantes
+                // 3. Gestionar frames de escala "pop" para el jugador y enemigo
+                if (playerHitFramesLeft > 0) {
+                    playerHitFramesLeft--
+                    if (playerHitFramesLeft == 0) {
+                        playerScaleTarget = 1f
+                    }
+                }
+                if (enemyHitFramesLeft > 0) {
+                    enemyHitFramesLeft--
+                    if (enemyHitFramesLeft == 0) {
+                        enemyScaleTarget = 1f
+                    }
+                }
+
+                // 4. Mover y atenuar textos de daño flotantes
                 damageTexts = damageTexts.map {
                     it.copy(
                         position = it.position.copy(y = it.position.y - 2.5f),
@@ -155,7 +192,7 @@ fun GameScreen(onExit: () -> Unit) {
                     )
                 }.filter { it.alpha > 0f }
 
-                // 4. Decrementar temporizadores de disparo
+                // 5. Decrementar temporizadores de disparo
                 if (playerShootCooldown > 0) playerShootCooldown--
                 if (enemyShootCooldown > 0) {
                     enemyShootCooldown--
@@ -208,7 +245,7 @@ fun GameScreen(onExit: () -> Unit) {
                     enemyShootCooldown = 45 // Cada ~720ms
                 }
 
-                // 5. Mover proyectiles en pantalla
+                // 6. Mover proyectiles en pantalla
                 projectiles = projectiles.map { p ->
                     if (p.isSineWave) {
                         val nextAge = p.age + 1
@@ -220,12 +257,12 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }.filter { it.position.x in -100f..(screenWidthPx + 100f) && it.position.y in -100f..(screenHeightPx + 100f) }
 
-                // 6. IA del Jefe: Movimiento vertical en el lateral derecho
+                // 7. IA del Jefe: Movimiento vertical en el lateral derecho
                 val time = System.currentTimeMillis()
                 val targetY = hudHeightPx + (sin(time / 450.0).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
                 enemyPos = enemyPos.copy(y = targetY)
 
-                // 7. Detección de colisiones precisa usando Rect.overlaps
+                // 8. Detección de colisiones precisa usando Rect.overlaps
                 val playerRect = Rect(playerPos, Size(playerSizePx, playerSizePx))
                 val enemyRect = Rect(enemyPos, Size(enemySizePx, enemySizePx))
                 val projPlayerSizePx = with(density) { 16.dp.toPx() }
@@ -255,6 +292,10 @@ fun GameScreen(onExit: () -> Unit) {
                         isInvincible = true
                         invincibleFramesLeft = 60 // 1 segundo de invencibilidad y parpadeo
                         
+                        // Activar efecto visual de Pop (escala alta)
+                        playerScaleTarget = 1.35f
+                        playerHitFramesLeft = 8
+
                         // Añadir texto flotante de impacto
                         damageTexts = damageTexts + DamageText(
                             id = nextId++,
@@ -279,6 +320,10 @@ fun GameScreen(onExit: () -> Unit) {
                     enemyHealth = (enemyHealth - 0.05f).coerceAtLeast(0f)
                     projectiles = projectiles.filter { it !in hitsEnemy }
                     
+                    // Activar efecto visual de Pop (escala alta) para el jefe
+                    enemyScaleTarget = 1.25f
+                    enemyHitFramesLeft = 8
+
                     // Añadir texto de impacto al jefe
                     damageTexts = damageTexts + DamageText(
                         id = nextId++,
@@ -344,10 +389,11 @@ fun GameScreen(onExit: () -> Unit) {
             )
         }
 
-        // Renderizado del Jugador (Con pulso de invulnerabilidad / parpadeo de daño)
+        // Renderizado del Jugador (Con pulso de invulnerabilidad y escala dinámica pop)
         Box(
             modifier = Modifier
                 .offset { IntOffset(playerPos.x.roundToInt(), playerPos.y.roundToInt()) }
+                .scale(playerScale)
                 .size(playerSizeDp)
                 .alpha(if (isInvincible) invincibleAlphaPulse else 1f)
                 .shadow(25.dp, CircleShape, ambientColor = Color(0xFF06B6D4))
@@ -367,6 +413,7 @@ fun GameScreen(onExit: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier
+                    .scale(enemyScale)
                     .size(enemySizeDp)
                     .shadow(35.dp, RoundedCornerShape(24.dp), ambientColor = Color.Red)
                     .background(Color(0xFF450a0a), RoundedCornerShape(24.dp))
@@ -458,6 +505,10 @@ fun GameScreen(onExit: () -> Unit) {
                                 enemyShootCooldown = 0
                                 isInvincible = false
                                 invincibleFramesLeft = 0
+                                playerScaleTarget = 1f
+                                enemyScaleTarget = 1f
+                                playerHitFramesLeft = 0
+                                enemyHitFramesLeft = 0
                                 damageTexts = emptyList()
                                 isGameOver = false
                             },
