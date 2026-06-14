@@ -220,6 +220,7 @@ fun GameScreen(onExit: () -> Unit) {
         var comboCount by remember { mutableStateOf(0) }
         var comboResetTimer by remember { mutableStateOf(0) }
         var isBossRage by remember { mutableStateOf(false) }
+        var bossRageLevel by remember { mutableStateOf(0) } // 0 = normal, 1 = rage 1, 2 = extreme rage 2
         var time by remember { mutableStateOf(0L) }
 
         // Infinitely pulsing alpha during player invulnerability
@@ -461,13 +462,15 @@ fun GameScreen(onExit: () -> Unit) {
                 if (screenShakeTimer > 0) screenShakeTimer--
 
                 // 15. Spawn & Update Boss Drones (Propuesta 1)
-                if (time % 350L == 0L && drones.size < 2 && enemyHealth > 0f) {
+                val droneSpawnInterval = if (bossRageLevel == 2) 150L else if (bossRageLevel == 1) 250L else 350L
+                val maxDronesCount = if (bossRageLevel == 2) 4 else if (bossRageLevel == 1) 3 else 2
+                if (time % droneSpawnInterval == 0L && drones.size < maxDronesCount && enemyHealth > 0f) {
                     val dy = if (Math.random() < 0.5) -3f else 3f
                     drones = drones + BossDrone(
                         id = nextId++,
                         position = Offset(enemyPos.x - 90f, enemyPos.y + (enemySizePx / 2f) + (-120..120).random().toFloat()),
                         velocityY = dy,
-                        health = 3f
+                        health = if (bossRageLevel == 2) 5f else 3f
                     )
                 }
                 drones = drones.map { d ->
@@ -505,7 +508,7 @@ fun GameScreen(onExit: () -> Unit) {
                             projectiles = projectiles + Projectile(
                                 id = nextId++,
                                 position = Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f),
-                                velocity = Offset(if (isBossRage) -17f else -13f, dy),
+                                velocity = Offset(if (bossRageLevel == 2) -24f else if (bossRageLevel == 1) -18f else -13f, dy),
                                 isPlayer = false
                             )
                         }
@@ -526,16 +529,27 @@ fun GameScreen(onExit: () -> Unit) {
                                 startY = enemyPos.y + enemySizePx / 2f
                             )
                         }
-                        3 -> { // Rage attack: 4-way diagonal spray
-                            projectiles = projectiles + listOf(
-                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -8f), false),
-                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -4f), false),
-                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 4f), false),
-                                Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 8f), false)
-                            )
+                        3 -> { // Rage attack: 4-way or 6-way diagonal spray
+                            projectiles = projectiles + if (bossRageLevel == 2) {
+                                listOf(
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -10f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -6f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -2f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 2f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 6f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 10f), false)
+                                )
+                            } else {
+                                listOf(
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -8f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, -4f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 4f), false),
+                                    Projectile(nextId++, Offset(enemyPos.x - 30f, enemyPos.y + enemySizePx / 2f), Offset(-12f, 8f), false)
+                                )
+                            }
                         }
                     }
-                    enemyShootCooldown = if (isBossRage) 22 else 45
+                    enemyShootCooldown = if (bossRageLevel == 2) 13 else if (bossRageLevel == 1) 22 else 40
                 }
 
                 // 16. Move active bullets
@@ -576,13 +590,18 @@ fun GameScreen(onExit: () -> Unit) {
                     BossState.DASHING -> {
                         val dec = if (timeSlowTimer > 0 && time % 2L == 0L) 0 else 1
                         bossDashTimer -= dec
-                        // Dash fast to the left (restored to 34f, halved to 17f during time slow)
-                        val dashSpeed = if (timeSlowTimer > 0) 17f else 34f
+                        // Dash fast to the left (speeds: normal=28f, rage1=36f, rage2=46f; halved during time slow)
+                        val dashSpeed = if (timeSlowTimer > 0) {
+                            if (bossRageLevel == 2) 23f else if (bossRageLevel == 1) 18f else 14f
+                        } else {
+                            if (bossRageLevel == 2) 46f else if (bossRageLevel == 1) 36f else 28f
+                        }
                         enemyPos = enemyPos.copy(x = enemyPos.x - dashSpeed, y = bossDashTargetY)
                         
                         // Collision check with player
                         if (enemyRect.overlaps(playerRect) && !isInvincible) {
-                            playerHealth = (playerHealth - 0.30f).coerceAtLeast(0f)
+                            val dashDamage = if (bossRageLevel == 2) 0.45f else if (bossRageLevel == 1) 0.35f else 0.25f
+                            playerHealth = (playerHealth - dashDamage).coerceAtLeast(0f)
                             isInvincible = true
                             invincibleFramesLeft = 80
                             playerScaleTarget = 1.4f
@@ -594,7 +613,7 @@ fun GameScreen(onExit: () -> Unit) {
                             SoundManager.playPlayerHit()
                             damageTexts = damageTexts + DamageText(
                                 id = nextId++,
-                                text = "💥 EMBESTIDA CRÍTICA -30% HP! 🚨",
+                                text = "💥 EMBESTIDA CRÍTICA -${(dashDamage * 100).toInt()}% HP! 🚨",
                                 position = playerPos.copy(y = playerPos.y - 45f),
                                 alpha = 1.5f,
                                 color = Color.Red
@@ -615,7 +634,7 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                     BossState.NORMAL -> {
                         val speedFactor = if (timeSlowTimer > 0) 0.05f else 1.0f
-                        val targetY = hudHeightPx + (sin(time / (if (isBossRage) 300.0 else 450.0)).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
+                        val targetY = hudHeightPx + (sin(time / (if (bossRageLevel == 2) 200.0 else if (bossRageLevel == 1) 300.0 else 450.0)).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
                         val nextY = enemyPos.y + (targetY - enemyPos.y) * speedFactor
                         enemyPos = enemyPos.copy(x = screenWidthPx * 0.8f, y = nextY)
                     }
@@ -765,8 +784,9 @@ fun GameScreen(onExit: () -> Unit) {
                                 color = Color.Cyan
                             )
                         } else {
-                            // Player takes increased damage (12% per hit for a higher difficulty challenge!)
-                            playerHealth = (playerHealth - 0.12f).coerceAtLeast(0f)
+                            // Player takes increased damage based on rage level!
+                            val bulletDamage = if (bossRageLevel == 2) 0.18f else if (bossRageLevel == 1) 0.14f else 0.10f
+                            playerHealth = (playerHealth - bulletDamage).coerceAtLeast(0f)
                             isInvincible = true
                             invincibleFramesLeft = 60
                             playerScaleTarget = 1.35f
@@ -779,7 +799,7 @@ fun GameScreen(onExit: () -> Unit) {
                             SoundManager.playPlayerHit()
                             damageTexts = damageTexts + DamageText(
                                 id = nextId++,
-                                text = "💥 -12% HP",
+                                text = "💥 -${(bulletDamage * 100).toInt()}% HP",
                                 position = playerPos.copy(x = playerPos.x + 10f, y = playerPos.y - 20f),
                                 alpha = 1f,
                                 color = Color(0xFFEF4444)
@@ -837,17 +857,30 @@ fun GameScreen(onExit: () -> Unit) {
                         )
                     }
 
-                    // Activate boss rage mode when health <= 50%
-                    if (enemyHealth <= 0.5f && !isBossRage) {
+                    // Activate boss rage mode 1 when health <= 70%
+                    if (enemyHealth <= 0.70f && bossRageLevel == 0) {
+                        bossRageLevel = 1
                         isBossRage = true
                         BgmManager.isRageMode = true
                         damageTexts = damageTexts + DamageText(
                             id = nextId++,
-                            text = "🚨 ¡ALERTA: MODO FURIA! 🚨",
+                            text = "🚨 ¡ALERTA: MODO FURIA (FASE 1)! 🚨",
                             position = Offset(screenWidthPx * 0.3f, screenHeightPx * 0.35f),
                             alpha = 2f,
+                            color = Color.Yellow
+                        )
+                    }
+                    // Activate boss extreme rage mode 2 when health <= 35%
+                    if (enemyHealth <= 0.35f && bossRageLevel == 1) {
+                        bossRageLevel = 2
+                        damageTexts = damageTexts + DamageText(
+                            id = nextId++,
+                            text = "🚨🚨 ¡ALERTA: FURIA EXTREMA (FASE 2)! 🚨🚨",
+                            position = Offset(screenWidthPx * 0.3f, screenHeightPx * 0.35f),
+                            alpha = 2.5f,
                             color = Color.Red
                         )
+                        SoundManager.playBossWarning()
                     }
                 }
 
@@ -1299,6 +1332,7 @@ fun GameScreen(onExit: () -> Unit) {
                                 comboCount = 0
                                 comboResetTimer = 0
                                 isBossRage = false
+                                bossRageLevel = 0
                                 screenShakeTimer = 0
                                 time = 0L
 
