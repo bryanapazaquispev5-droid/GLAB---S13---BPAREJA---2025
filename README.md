@@ -52,12 +52,16 @@ This application is organized in a highly modular fashion, presenting 5 interact
     - *Defeat Chime*: Descending somber minor melody.
     - *Power-Up Sound*: Rapid ascending arpeggio.
   - **Boss Rage Mode:** Activates at $\le$ 50% Boss HP, accelerating the BGM loop speed and triggering a 4-way diagonal laser spray pattern.
+  - **Boss Drones (Minions):** The boss invokes up to 2 floating escort drones (`🛸`) that fly vertically and shoot green simple lasers every 80 frames. Hitting drones charges the Ultimate Gauge.
+  - **Boss Ram Dash Attack:** Every 7-8 seconds, the boss locks onto the player's y-coordinate, warning the player with a neon-yellow warning glow and double alarm beeps, then dashes horizontally at extreme speed. Getting hit inflicts **30% critical damage** and triggers heavy screen shake.
+  - **Ultimate Cyber-Beam:** Hitting the boss or drones charges a vertical energy gauge. When it reaches 100% capacity, a fuchsia `⚡ULT⚡` button lights up. Activating it releases a massive horizontal plasma beam for 3 seconds that vaporizes all active enemy bullets and deals continuous damage to the boss and drones.
   - **Combos & Scores:** Scoring multiplier linked to uninterrupted hits, saved locally via `SharedPreferences`.
   - **Screen Shake:** Oscillates the main game frame on player hit.
-- **Balanced Game Difficulty:**
+- **Balanced Game Difficulty & Power-Ups:**
   - Player lasers do **1% damage** (requires 100 hits to defeat the boss).
   - Boss projectiles do **12% damage** (player is defeated in 8-9 hits).
-  - Faster and more aggressive bullet patterns in boss Rage Mode.
+  - Escort drones must be shot down or destroyed by the ultimate beam (have 3 HP each).
+  - Spawn frequency of power-ups has been quadrupled, with a **50% probability weight** assigned to the Health Restore (`❤️`) power-up to keep players active in combat.
 
 ---
 
