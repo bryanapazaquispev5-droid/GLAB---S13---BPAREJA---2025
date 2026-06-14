@@ -339,7 +339,7 @@ fun GameScreen(onExit: () -> Unit) {
                 }.filter { it.age < it.maxAge }
 
                 // 10. Update & spawn floating power-ups (Highly frequent spawns for all player buffs!)
-                if (powerUps.isEmpty() && (0..45).random() == 0) {
+                if (powerUps.size < 5 && (0..25).random() == 0) {
                     val pType = when ((0..5).random()) {
                         0 -> PowerUpType.HEALTH_RESTORE
                         1 -> PowerUpType.SHIELD
@@ -703,7 +703,7 @@ fun GameScreen(onExit: () -> Unit) {
                     
                     // Continuous damage to boss
                     if (enemyHealth > 0f && beamRect.overlaps(enemyRect)) {
-                        enemyHealth = (enemyHealth - 0.003f).coerceAtLeast(0f)
+                        enemyHealth = (enemyHealth - 0.001f).coerceAtLeast(0f)
                         if (time % 4L == 0L) {
                             particles = particles + ParticleSystem.createExplosion(
                                 nextId, 
@@ -800,7 +800,7 @@ fun GameScreen(onExit: () -> Unit) {
                 
                 if (hitsEnemy.isNotEmpty()) {
                     // Player bullets do less damage (1% per hit instead of 2% for a longer, more challenging battle!)
-                    enemyHealth = (enemyHealth - 0.01f).coerceAtLeast(0f)
+                    enemyHealth = (enemyHealth - 0.003f).coerceAtLeast(0f)
                     projectiles = projectiles.filter { it !in hitsEnemy }
                     
                     enemyScaleTarget = 1.25f
