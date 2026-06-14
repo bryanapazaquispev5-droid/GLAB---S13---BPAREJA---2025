@@ -87,3 +87,21 @@ data class Particle(
     val maxAge: Int,
     val age: Int
 )
+
+// Estados de comportamiento del Omega Boss
+enum class BossState {
+    NORMAL,
+    WARNING,  // Parpadea en amarillo neón antes de la embestida
+    DASHING,  // Embestida rápida hacia la izquierda
+    RETURNING // Retorno suave a su columna original
+}
+
+// Drones/Minions escoltas que invoca el jefe
+data class BossDrone(
+    val id: Long,
+    val position: Offset,
+    val velocityY: Float,
+    var health: Float,
+    val maxHealth: Float = 3f,
+    val size: Float = 50f
+)

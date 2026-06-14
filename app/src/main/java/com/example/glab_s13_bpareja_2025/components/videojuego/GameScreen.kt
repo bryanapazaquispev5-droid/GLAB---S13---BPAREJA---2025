@@ -207,6 +207,13 @@ fun GameScreen(onExit: () -> Unit) {
         var shieldActive by remember { mutableStateOf(false) }
         var doubleShotTimer by remember { mutableStateOf(0) }
         var tripleShotTimer by remember { mutableStateOf(0) }
+        var drones by remember { mutableStateOf(emptyList<BossDrone>()) }
+        var ultimateEnergy by remember { mutableStateOf(0f) }
+        var ultimateBeamTimer by remember { mutableStateOf(0) }
+        var bossState by remember { mutableStateOf(BossState.NORMAL) }
+        var bossDashTimer by remember { mutableStateOf(0) }
+        var bossDashStartX by remember { mutableStateOf(0f) }
+        var bossDashTargetY by remember { mutableStateOf(0f) }
         var score by remember { mutableStateOf(0) }
         var comboCount by remember { mutableStateOf(0) }
         var comboResetTimer by remember { mutableStateOf(0) }
@@ -331,10 +338,11 @@ fun GameScreen(onExit: () -> Unit) {
 
                 // 10. Update & spawn floating power-ups (Increased spawn frequency to make the battle more dynamic!)
                 if (powerUps.isEmpty() && (0..180).random() == 0) {
-                    val pType = when ((0..3).random()) {
-                        0 -> PowerUpType.SHIELD
-                        1 -> PowerUpType.DOUBLE_SHOT
-                        2 -> PowerUpType.HEALTH_RESTORE
+                    // Spawning Health Restore with 50% probability as requested!
+                    val pType = when ((0..9).random()) {
+                        in 0..4 -> PowerUpType.HEALTH_RESTORE
+                        in 5..6 -> PowerUpType.SHIELD
+                        in 7..8 -> PowerUpType.DOUBLE_SHOT
                         else -> PowerUpType.TRIPLE_SHOT
                     }
                     val startY = hudHeightPx + (Math.random() * (screenHeightPx - hudHeightPx - 100f)).toFloat()
@@ -412,6 +420,7 @@ fun GameScreen(onExit: () -> Unit) {
                 // 12. Power-up timers
                 if (doubleShotTimer > 0) doubleShotTimer--
                 if (tripleShotTimer > 0) tripleShotTimer--
+                if (ultimateBeamTimer > 0) ultimateBeamTimer--
 
                 // 13. Combo reset timer
                 if (comboResetTimer > 0) {
@@ -424,7 +433,38 @@ fun GameScreen(onExit: () -> Unit) {
                 // 14. Screen shake timer
                 if (screenShakeTimer > 0) screenShakeTimer--
 
-                // 15. Decrement shoot cooldowns
+                // 15. Spawn & Update Boss Drones (Propuesta 1)
+                if (time % 350L == 0L && drones.size < 2 && enemyHealth > 0f) {
+                    val dy = if (Math.random() < 0.5) -3f else 3f
+                    drones = drones + BossDrone(
+                        id = nextId++,
+                        position = Offset(enemyPos.x - 90f, enemyPos.y + (enemySizePx / 2f) + (-120..120).random().toFloat()),
+                        velocityY = dy,
+                        health = 3f
+                    )
+                }
+                drones = drones.map { d ->
+                    var nextY = d.position.y + d.velocityY
+                    var nextVelY = d.velocityY
+                    val droneSizePx = with(density) { d.size.dp.toPx() }
+                    if (nextY < hudHeightPx || nextY > screenHeightPx - droneSizePx - 20f) {
+                        nextVelY = -d.velocityY
+                        nextY = nextY.coerceIn(hudHeightPx, screenHeightPx - droneSizePx - 20f)
+                    }
+                    
+                    // Drones shoot simple lasers
+                    if ((time + d.id) % 80L == 0L && enemyHealth > 0f) {
+                        projectiles = projectiles + Projectile(
+                            id = nextId++,
+                            position = Offset(d.position.x - 15f, d.position.y + droneSizePx / 2f),
+                            velocity = Offset(-11f, 0f),
+                            isPlayer = false
+                        )
+                    }
+                    d.copy(position = d.position.copy(y = nextY), velocityY = nextVelY)
+                }
+
+                // 16. Decrement shoot cooldowns
                 if (playerShootCooldown > 0) playerShootCooldown--
                 if (enemyShootCooldown > 0) {
                     enemyShootCooldown--
@@ -482,12 +522,70 @@ fun GameScreen(onExit: () -> Unit) {
                     }
                 }.filter { it.position.x in -100f..(screenWidthPx + 100f) && it.position.y in -100f..(screenHeightPx + 100f) }
 
-                // 17. Boss AI: vertical movement oscillating
-                val targetY = hudHeightPx + (sin(time / (if (isBossRage) 300.0 else 450.0)).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
-                enemyPos = enemyPos.copy(y = targetY)
+                // 17. Boss AI: Ram Dash behavior state machine (Propuesta 2)
+                if (time % 450L == 0L && bossState == BossState.NORMAL && enemyHealth > 0f) {
+                    bossState = BossState.WARNING
+                    bossDashTimer = 90 // 1.5 seconds warning
+                    bossDashTargetY = playerPos.y
+                    SoundManager.playBossWarning()
+                }
 
-                // 18. Exact Rect-overlap collision detection
                 val enemyRect = Rect(enemyPos, Size(enemySizePx, enemySizePx))
+
+                when (bossState) {
+                    BossState.WARNING -> {
+                        bossDashTimer--
+                        if (bossDashTimer <= 0) {
+                            bossState = BossState.DASHING
+                            bossDashTimer = 35
+                            bossDashStartX = enemyPos.x
+                            SoundManager.playBossDash()
+                        }
+                    }
+                    BossState.DASHING -> {
+                        bossDashTimer--
+                        // Dash fast to the left
+                        enemyPos = enemyPos.copy(x = enemyPos.x - 34f, y = bossDashTargetY)
+                        
+                        // Collision check with player
+                        if (enemyRect.overlaps(playerRect) && !isInvincible) {
+                            playerHealth = (playerHealth - 0.30f).coerceAtLeast(0f)
+                            isInvincible = true
+                            invincibleFramesLeft = 80
+                            playerScaleTarget = 1.4f
+                            playerHitFramesLeft = 12
+                            comboCount = 0
+                            screenShakeTimer = 25 // heavy screen shake
+                            particles = particles + ParticleSystem.createExplosion(nextId, playerPos + Offset(playerSizePx / 2f, playerSizePx / 2f), Color.Red, 20)
+                            nextId += 20
+                            SoundManager.playPlayerHit()
+                            damageTexts = damageTexts + DamageText(
+                                id = nextId++,
+                                text = "💥 EMBESTIDA CRÍTICA -30% HP! 🚨",
+                                position = playerPos.copy(y = playerPos.y - 45f),
+                                alpha = 1.5f,
+                                color = Color.Red
+                            )
+                        }
+                        
+                        if (enemyPos.x <= 40f || bossDashTimer <= 0) {
+                            bossState = BossState.RETURNING
+                        }
+                    }
+                    BossState.RETURNING -> {
+                        // Return to the right
+                        enemyPos = enemyPos.copy(x = (enemyPos.x + 20f).coerceAtMost(screenWidthPx * 0.8f), y = bossDashTargetY)
+                        if (enemyPos.x >= screenWidthPx * 0.8f) {
+                            bossState = BossState.NORMAL
+                        }
+                    }
+                    BossState.NORMAL -> {
+                        val targetY = hudHeightPx + (sin(time / (if (isBossRage) 300.0 else 450.0)).toFloat() * 0.5f + 0.5f) * (screenHeightPx - hudHeightPx - enemySizePx)
+                        enemyPos = enemyPos.copy(x = screenWidthPx * 0.8f, y = targetY)
+                    }
+                }
+
+                // 18. Exact Rect-overlap collision detection (including drones and ultimate beam)
                 val hitsPlayer = mutableListOf<Projectile>()
                 val hitsEnemy = mutableListOf<Projectile>()
 
@@ -502,6 +600,110 @@ fun GameScreen(onExit: () -> Unit) {
                         if (playerRect.overlaps(projRect)) {
                             hitsPlayer.add(p)
                         }
+                    }
+                }
+
+                // Handle Player Projectiles hitting Drones (Propuesta 1)
+                val dronesHit = mutableListOf<BossDrone>()
+                val playerProjHitDrone = mutableListOf<Projectile>()
+                projectiles.filter { it.isPlayer }.forEach { p ->
+                    val pRect = Rect(p.position, Size(projPlayerSizePx, projPlayerSizePx))
+                    drones.forEach { d ->
+                        val dSizePx = with(density) { d.size.dp.toPx() }
+                        val dRect = Rect(d.position, Size(dSizePx, dSizePx))
+                        if (pRect.overlaps(dRect)) {
+                            playerProjHitDrone.add(p)
+                            d.health -= 1f
+                            particles = particles + ParticleSystem.createExplosion(nextId, p.position, Color.Magenta, 6)
+                            nextId += 6
+                            ultimateEnergy = (ultimateEnergy + 0.02f).coerceAtMost(1f) // ultimate charges on drone hits
+                            score += 50
+                            if (d.health <= 0f) {
+                                dronesHit.add(d)
+                            }
+                        }
+                    }
+                }
+                if (playerProjHitDrone.isNotEmpty()) {
+                    projectiles = projectiles.filter { it !in playerProjHitDrone }
+                }
+                if (dronesHit.isNotEmpty()) {
+                    drones = drones.filter { it !in dronesHit }
+                    dronesHit.forEach { d ->
+                        SoundManager.playDroneDestroy()
+                        damageTexts = damageTexts + DamageText(
+                            id = nextId++,
+                            text = "💥 DRONE DESTRUIDO! +500",
+                            position = d.position,
+                            alpha = 1.2f,
+                            color = Color(0xFFD946EF)
+                        )
+                        score += 500
+                        particles = particles + ParticleSystem.createExplosion(nextId, d.position, Color(0xFFD946EF), 15)
+                        nextId += 15
+                    }
+                }
+
+                // Ultimate Beam activation updates (Propuesta 3)
+                if (ultimateBeamTimer > 0) {
+                    val beamHeightPx = with(density) { 55.dp.toPx() }
+                    val playerCenterY = playerPos.y + playerSizePx / 2f
+                    val beamRect = Rect(
+                        playerPos.x + playerSizePx,
+                        playerCenterY - beamHeightPx / 2f,
+                        screenWidthPx,
+                        playerCenterY + beamHeightPx / 2f
+                    )
+                    
+                    // Vaporize all enemy bullets in ultimate path
+                    val vaporized = projectiles.filter { !it.isPlayer && beamRect.overlaps(Rect(it.position, Size(projEnemySizePx, projEnemySizePx))) }
+                    if (vaporized.isNotEmpty()) {
+                        projectiles = projectiles.filter { it !in vaporized }
+                        vaporized.forEach { p ->
+                            particles = particles + ParticleSystem.createExplosion(nextId, p.position, Color.White, 4)
+                            nextId += 4
+                        }
+                    }
+                    
+                    // Continuous damage to boss
+                    if (enemyHealth > 0f && beamRect.overlaps(enemyRect)) {
+                        enemyHealth = (enemyHealth - 0.003f).coerceAtLeast(0f)
+                        if (time % 4L == 0L) {
+                            particles = particles + ParticleSystem.createExplosion(
+                                nextId, 
+                                Offset(enemyPos.x + (0..enemySizePx.toInt()).random(), enemyPos.y + (0..enemySizePx.toInt()).random()), 
+                                Color(0xFFD946EF), 
+                                2
+                            )
+                            nextId += 2
+                        }
+                    }
+                    
+                    // Continuous damage to drones
+                    drones = drones.map { d ->
+                        val dSizePx = with(density) { d.size.dp.toPx() }
+                        val dRect = Rect(d.position, Size(dSizePx, dSizePx))
+                        if (beamRect.overlaps(dRect)) {
+                            d.copy(health = d.health - 0.08f)
+                        } else {
+                            d
+                        }
+                    }.filter { d ->
+                        val dead = d.health <= 0f
+                        if (dead) {
+                            SoundManager.playDroneDestroy()
+                            score += 500
+                            particles = particles + ParticleSystem.createExplosion(nextId, d.position, Color(0xFFD946EF), 15)
+                            nextId += 15
+                            damageTexts = damageTexts + DamageText(
+                                id = nextId++,
+                                text = "💥 DRONE DESTRUIDO! +500",
+                                position = d.position,
+                                alpha = 1.2f,
+                                color = Color(0xFFD946EF)
+                            )
+                        }
+                        !dead
                     }
                 }
 
@@ -572,6 +774,9 @@ fun GameScreen(onExit: () -> Unit) {
                     comboResetTimer = 120 // 2 seconds
                     val hitScore = 100 * comboCount
                     score += hitScore
+
+                    // Charge ultimate energy cell!
+                    ultimateEnergy = (ultimateEnergy + 0.02f).coerceAtMost(1f)
 
                     particles = particles + ParticleSystem.createExplosion(nextId, hitsEnemy.first().position, Color(0xFFD946EF), 10)
                     nextId += 10
@@ -741,6 +946,29 @@ fun GameScreen(onExit: () -> Unit) {
             )
         }
 
+        // RENDER ULTIMATE CYBER-BEAM (Propuesta 3)
+        if (ultimateBeamTimer > 0) {
+            val beamHeight = 55.dp
+            val playerCenterY = playerPos.y + playerSizePx / 2f
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset((playerPos.x + playerSizePx).roundToInt(), (playerCenterY - with(density) { beamHeight.toPx() } / 2f).roundToInt()) }
+                    .width(screenWidthDp)
+                    .height(beamHeight)
+                    .shadow(25.dp, RoundedCornerShape(8.dp), ambientColor = Color(0xFFD946EF))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFE0F2FE), // light blue core
+                                Color(0xFFD946EF), // fuchsia neon glow
+                                Color(0xFF818CF8)  // indigo base
+                            )
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+            )
+        }
+
         // RENDER PLAYER (With dynamic scale bounce & Lottie JSON Character animation)
         Box(
             modifier = Modifier
@@ -754,8 +982,35 @@ fun GameScreen(onExit: () -> Unit) {
             PlayerLottieCharacter(modifier = Modifier.fillMaxSize())
         }
 
-        // RENDER BOSS (With Lottie JSON Character animation)
+        // RENDER BOSS DRONES (Propuesta 1)
+        drones.forEach { d ->
+            val dSizeDp = d.size.dp
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(d.position.x.roundToInt(), d.position.y.roundToInt()) }
+                    .size(dSizeDp)
+                    .shadow(15.dp, CircleShape, ambientColor = Color(0xFFD946EF))
+                    .background(Color(0xFF0A0F24), CircleShape)
+                    .border(2.dp, Color(0xFFD946EF), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🛸", fontSize = 20.sp)
+            }
+        }
+
+        // RENDER BOSS (With Lottie JSON Character animation & dynamic alert shadows)
         val animatedEnemyPos by animateOffsetAsState(targetValue = enemyPos, label = "enemy")
+        val bossShadowColor = when (bossState) {
+            BossState.WARNING -> Color.Yellow
+            BossState.DASHING -> Color.Magenta
+            else -> Color.Red
+        }
+        val bossBorderColor = when (bossState) {
+            BossState.WARNING -> Color.Yellow
+            BossState.DASHING -> Color.Magenta
+            else -> Color.Transparent
+        }
+        
         AnimatedVisibility(
             visible = enemyHealth > 0f,
             enter = fadeIn(),
@@ -766,7 +1021,8 @@ fun GameScreen(onExit: () -> Unit) {
                 modifier = Modifier
                     .scale(enemyScale)
                     .size(enemySizeDp)
-                    .shadow(35.dp, RoundedCornerShape(24.dp), ambientColor = Color.Red),
+                    .shadow(35.dp, RoundedCornerShape(24.dp), ambientColor = bossShadowColor)
+                    .border(if (bossBorderColor != Color.Transparent) 4.dp else 0.dp, bossBorderColor, RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 EnemyLottieCharacter(modifier = Modifier.fillMaxSize())
@@ -787,7 +1043,7 @@ fun GameScreen(onExit: () -> Unit) {
             )
         }
 
-        // HUD CONTROLS (Joystick Left, Shoot Right)
+        // HUD CONTROLS (Joystick Left, Shoot & Ultimate Right) (Propuesta 3)
         Box(modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp)) {
             Joystick(
                 modifier = Modifier.align(Alignment.BottomStart),
@@ -797,69 +1053,136 @@ fun GameScreen(onExit: () -> Unit) {
                 }
             )
 
-            Button(
-                onClick = { 
-                    if (playerShootCooldown == 0) {
-                        if (tripleShotTimer > 0) {
-                            // Spread fan laser shot
-                            projectiles = projectiles + listOf(
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
-                                    velocity = Offset(20f, -5f),
-                                    isPlayer = true
-                                ),
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
-                                    velocity = Offset(22f, 0f),
-                                    isPlayer = true
-                                ),
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
-                                    velocity = Offset(20f, 5f),
-                                    isPlayer = true
-                                )
-                            )
-                        } else if (doubleShotTimer > 0) {
-                            // Double parallel lasers
-                            projectiles = projectiles + listOf(
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx * 0.15f),
-                                    velocity = Offset(22f, 0f),
-                                    isPlayer = true
-                                ),
-                                Projectile(
-                                    id = nextId++,
-                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx * 0.75f),
-                                    velocity = Offset(22f, 0f),
-                                    isPlayer = true
-                                )
-                            )
-                        } else {
-                            // Simple laser
-                            projectiles = projectiles + Projectile(
-                                id = nextId++,
-                                position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
-                                velocity = Offset(20f, 0f),
-                                isPlayer = true
-                            )
-                        }
-                        playerShootCooldown = 8 // short cooldown for fast firing
-                        
-                        SoundManager.playLaser()
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(90.dp),
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 15.dp)
+            Row(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(Icons.Default.Bolt, null, modifier = Modifier.size(44.dp))
+                // Ultimate Energy cell charging gauge
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(36.dp)
+                ) {
+                    Text(
+                        text = "${(ultimateEnergy * 100).roundToInt()}%",
+                        color = if (ultimateEnergy >= 1f) Color(0xFFD946EF) else Color.White.copy(alpha = 0.7f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(14.dp)
+                            .height(70.dp)
+                            .background(Color(0xFF0F172A), RoundedCornerShape(4.dp))
+                            .border(1.5.dp, if (ultimateEnergy >= 1f) Color(0xFFD946EF) else Color.White.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                            .padding(2.dp),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                  .fillMaxWidth()
+                                  .fillMaxHeight(ultimateEnergy)
+                                  .background(
+                                      Brush.verticalGradient(
+                                          listOf(Color(0xFFE0F2FE), Color(0xFFD946EF))
+                                      ),
+                                      shape = RoundedCornerShape(2.dp)
+                                  )
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "ULT",
+                        color = if (ultimateEnergy >= 1f) Color(0xFFD946EF) else Color.White.copy(alpha = 0.4f),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+
+                // Ultimate Laser Button (Only triggers at 100% full capacity)
+                if (ultimateEnergy >= 1f) {
+                    Button(
+                        onClick = {
+                            ultimateBeamTimer = 180 // 3 seconds at 60 FPS
+                            ultimateEnergy = 0f
+                            SoundManager.playUltimateBeam()
+                        },
+                        modifier = Modifier
+                            .size(75.dp)
+                            .shadow(15.dp, CircleShape, ambientColor = Color(0xFFD946EF))
+                            .border(2.dp, Color.White, CircleShape),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD946EF))
+                    ) {
+                        Text("⚡ULT⚡", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color.White)
+                    }
+                }
+
+                // Standard Laser Shoot Button
+                Button(
+                    onClick = { 
+                        if (playerShootCooldown == 0) {
+                            if (tripleShotTimer > 0) {
+                                // Spread fan laser shot
+                                projectiles = projectiles + listOf(
+                                    Projectile(
+                                        id = nextId++,
+                                        position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                        velocity = Offset(20f, -5f),
+                                        isPlayer = true
+                                    ),
+                                    Projectile(
+                                        id = nextId++,
+                                        position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                        velocity = Offset(22f, 0f),
+                                        isPlayer = true
+                                    ),
+                                    Projectile(
+                                        id = nextId++,
+                                        position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                        velocity = Offset(20f, 5f),
+                                        isPlayer = true
+                                    )
+                                )
+                            } else if (doubleShotTimer > 0) {
+                                // Double parallel lasers
+                                projectiles = projectiles + listOf(
+                                    Projectile(
+                                        id = nextId++,
+                                        position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx * 0.15f),
+                                        velocity = Offset(22f, 0f),
+                                        isPlayer = true
+                                    ),
+                                    Projectile(
+                                        id = nextId++,
+                                        position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx * 0.75f),
+                                        velocity = Offset(22f, 0f),
+                                        isPlayer = true
+                                    )
+                                )
+                            } else {
+                                // Simple laser
+                                projectiles = projectiles + Projectile(
+                                    id = nextId++,
+                                    position = Offset(playerPos.x + playerSizePx, playerPos.y + playerSizePx / 2f - 8f),
+                                    velocity = Offset(20f, 0f),
+                                    isPlayer = true
+                                )
+                            }
+                            playerShootCooldown = 8 // short cooldown for fast firing
+                            
+                            SoundManager.playLaser()
+                        }
+                    },
+                    modifier = Modifier
+                        .size(90.dp),
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 15.dp)
+                ) {
+                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(44.dp))
+                }
             }
         }
 
@@ -925,6 +1248,11 @@ fun GameScreen(onExit: () -> Unit) {
                                 shieldActive = false
                                 doubleShotTimer = 0
                                 tripleShotTimer = 0
+                                drones = emptyList()
+                                ultimateEnergy = 0f
+                                ultimateBeamTimer = 0
+                                bossState = BossState.NORMAL
+                                bossDashTimer = 0
                                 score = 0
                                 comboCount = 0
                                 comboResetTimer = 0

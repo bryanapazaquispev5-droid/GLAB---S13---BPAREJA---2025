@@ -177,4 +177,85 @@ object SoundManager {
             playSynthSamples(samples)
         }.start()
     }
+
+    // Sonido de Rayo Definitivo (Ultimate Beam)
+    fun playUltimateBeam() {
+        Thread {
+            val durationSec = 1.0f
+            val numSamples = (durationSec * SAMPLE_RATE).toInt()
+            val samples = FloatArray(numSamples)
+            for (i in 0 until numSamples) {
+                val progress = i.toFloat() / numSamples
+                if (progress < 0.3f) {
+                    // Carga: tono ascendente agudo
+                    val chargeProgress = progress / 0.3f
+                    val freq = 440.0f + chargeProgress * 1200.0f
+                    val angle = 2.0 * PI * freq * (i.toFloat() / SAMPLE_RATE)
+                    samples[i] = (sin(angle).toFloat() * 0.12f) * chargeProgress
+                } else {
+                    // Disparo: mezcla de ruido y tono grave de onda de sierra
+                    val fireProgress = (progress - 0.3f) / 0.7f
+                    val angle = 2.0 * PI * 85.0 * (i.toFloat() / SAMPLE_RATE)
+                    val sawtooth = 1.0f - (angle % (2.0 * PI) / PI).toFloat()
+                    val noise = ((Math.random() * 2.0 - 1.0) * 0.15).toFloat()
+                    samples[i] = (sawtooth * 0.2f + noise) * (1.0f - fireProgress)
+                }
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
+
+    // Alarma de embestida del jefe (Boss warning alarm)
+    fun playBossWarning() {
+        Thread {
+            val noteDurSec = 0.15f
+            val numSamples = (noteDurSec * SAMPLE_RATE * 3).toInt()
+            val samples = FloatArray(numSamples)
+            val noteDuration = numSamples / 3
+            val freqs = floatArrayOf(880f, 0f, 880f) // Double bip
+            for (note in 0 until 3) {
+                val freq = freqs[note]
+                val startOffset = note * noteDuration
+                if (freq > 0f) {
+                    for (i in 0 until noteDuration) {
+                        val angle = 2.0 * PI * freq * (i.toFloat() / SAMPLE_RATE)
+                        samples[startOffset + i] = (if (sin(angle) > 0f) 0.18f else -0.18f) * 0.8f
+                    }
+                }
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
+
+    // Sonido de embestida del jefe (Boss dash swoosh)
+    fun playBossDash() {
+        Thread {
+            val durationSec = 0.5f
+            val numSamples = (durationSec * SAMPLE_RATE).toInt()
+            val samples = FloatArray(numSamples)
+            for (i in 0 until numSamples) {
+                val progress = i.toFloat() / numSamples
+                // Ruido blanco filtrado con envolvente descendente
+                val noise = ((Math.random() * 2.0 - 1.0) * 0.25).toFloat()
+                samples[i] = noise * (1.0f - progress)
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
+
+    // Sonido de destrucción de drone (Drone explosion)
+    fun playDroneDestroy() {
+        Thread {
+            val durationSec = 0.12f
+            val numSamples = (durationSec * SAMPLE_RATE).toInt()
+            val samples = FloatArray(numSamples)
+            for (i in 0 until numSamples) {
+                val progress = i.toFloat() / numSamples
+                // Ruido agudo de explosión corta
+                val noise = ((Math.random() * 2.0 - 1.0) * 0.18).toFloat()
+                samples[i] = noise * (1.0f - progress)
+            }
+            playSynthSamples(samples)
+        }.start()
+    }
 }
