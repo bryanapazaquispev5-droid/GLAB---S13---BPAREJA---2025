@@ -1,9 +1,11 @@
 package com.example.glab_s13_bpareja_2025
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,7 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -25,7 +27,6 @@ import com.example.glab_s13_bpareja_2025.components.color.ColorAnimationScreen
 import com.example.glab_s13_bpareja_2025.components.comun.SectionCard
 import com.example.glab_s13_bpareja_2025.components.contenido.ContentAnimationScreen
 import com.example.glab_s13_bpareja_2025.components.dimensiones.SizeAndPositionAnimationScreen
-import com.example.glab_s13_bpareja_2025.components.videojuego.GamePrototypeScreen
 import com.example.glab_s13_bpareja_2025.components.visibilidad.VisibilityAnimationScreen
 import com.example.glab_s13_bpareja_2025.ui.theme.GLABS13BPAREJA2025Theme
 
@@ -37,14 +38,22 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GLABS13BPAREJA2025Theme {
-                MainScreen()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainScreen(onStartGame = {
+                        val intent = Intent(this@MainActivity, GameActivity::class.java)
+                        startActivity(intent)
+                    })
+                }
             }
         }
     }
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(onStartGame: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -66,7 +75,6 @@ fun MainScreen() {
         ) {
             Spacer(modifier = Modifier.height(64.dp))
             
-            // Modern Header
             Column(modifier = Modifier.padding(bottom = 32.dp)) {
                 Text(
                     text = "Animaciones",
@@ -99,12 +107,20 @@ fun MainScreen() {
             }
             
             SectionCard(title = "Final: Prototipo de Videojuego", icon = Icons.Default.VideogameAsset) {
-                GamePrototypeScreen()
+                Button(
+                    onClick = onStartGame,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.PlayArrow, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("INICIAR AVENTURA", fontWeight = FontWeight.Black)
+                }
             }
             
             Spacer(modifier = Modifier.height(48.dp))
             
-            // Footer
             Text(
                 text = "Desarrollado por IVAN APAZA",
                 style = MaterialTheme.typography.labelSmall,
@@ -112,13 +128,5 @@ fun MainScreen() {
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 32.dp)
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    GLABS13BPAREJA2025Theme {
-        MainScreen()
     }
 }
