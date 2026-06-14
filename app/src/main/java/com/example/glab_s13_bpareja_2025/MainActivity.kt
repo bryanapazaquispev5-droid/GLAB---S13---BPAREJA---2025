@@ -24,6 +24,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.glab_s13_bpareja_2025.ui.theme.GLABS13BPAREJA2025Theme
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,10 +45,42 @@ class MainActivity : ComponentActivity() {
                         VisibilityAnimationScreen()
                         Divider()
                         ColorAnimationScreen()
+                        Divider()
+                        SizeAndPositionAnimationScreen()
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun SizeAndPositionAnimationScreen() {
+    var isMoved by remember { mutableStateOf(false) }
+    val size by animateDpAsState(targetValue = if (isMoved) 150.dp else 100.dp)
+    val offsetX by animateDpAsState(targetValue = if (isMoved) 50.dp else 0.dp)
+    val offsetY by animateDpAsState(targetValue = if (isMoved) 50.dp else 0.dp)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Exercise 3: Size and Position Animation")
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = { isMoved = !isMoved }) {
+            Text(text = "Move and Resize")
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Box(
+            modifier = Modifier
+                .offset(x = offsetX, y = offsetY)
+                .size(size)
+                .background(Color.Red)
+        )
+        // Add extra space to avoid overlapping when moved
+        Spacer(modifier = Modifier.height(100.dp))
     }
 }
 
