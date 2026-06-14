@@ -32,7 +32,7 @@ fun SizeAndPositionAnimationScreen() {
             onClick = { isExpanded = !isExpanded },
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text(if (isExpanded) "Reset Layout" else "Expand Layout")
+            Text(if (isExpanded) "Restablecer Diseño" else "Expandir Diseño")
         }
 
         Spacer(modifier = Modifier.height(24.dp))

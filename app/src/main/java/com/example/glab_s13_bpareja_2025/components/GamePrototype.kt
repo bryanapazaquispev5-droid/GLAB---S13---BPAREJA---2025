@@ -55,7 +55,7 @@ fun GamePrototypeScreen() {
                 onClick = { isPlaying = true },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBB86FC))
             ) {
-                Text("ENTER COMBAT", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("ENTRAR EN COMBATE", color = Color.Black, fontWeight = FontWeight.Bold)
             }
         } else {
             Row(
@@ -73,7 +73,7 @@ fun GamePrototypeScreen() {
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
-                    Text("STRIKE", fontWeight = FontWeight.ExtraBold)
+                    Text("ATACAR", fontWeight = FontWeight.ExtraBold)
                 }
                 IconButton(onClick = { characterPos += 15.dp }, modifier = Modifier.background(Color.DarkGray, CircleShape)) {
                     Icon(Icons.Default.ArrowForward, null, tint = Color.White)
@@ -113,13 +113,13 @@ fun GamePrototypeScreen() {
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("VICTORY", color = Color(0xFFFFD700), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
+                        Text("VICTORIA", color = Color(0xFFFFD700), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
                         TextButton(onClick = {
                             showEnemy = true
                             enemyHealth = 1f
                             characterPos = 0.dp
                         }) {
-                            Text("RETRY", color = Color.White)
+                            Text("REINTENTAR", color = Color.White)
                         }
                     }
                 }
@@ -137,7 +137,7 @@ fun EnemyCharacterModern(visible: Boolean, health: Float, modifier: Modifier) {
         modifier = modifier
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("BOSS", color = Color.Red, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+            Text("JEFE", color = Color.Red, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             LinearProgressIndicator(
                 progress = { health },
                 modifier = Modifier

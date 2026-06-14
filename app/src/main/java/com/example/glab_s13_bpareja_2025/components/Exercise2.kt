@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 fun ColorAnimationScreen() {
     var isAlternative by remember { mutableStateOf(false) }
     val color1 = MaterialTheme.colorScheme.primary
-    val color2 = Color(0xFF4CAF50) // Modern Green
+    val color2 = Color(0xFF4CAF50) // Verde Moderno
     
     val backgroundColor by animateColorAsState(
         targetValue = if (isAlternative) color2 else color1,
@@ -33,7 +33,7 @@ fun ColorAnimationScreen() {
             colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text("Switch Theme Color")
+            Text("Cambiar Color de Tema")
         }
 
         Spacer(modifier = Modifier.height(24.dp))

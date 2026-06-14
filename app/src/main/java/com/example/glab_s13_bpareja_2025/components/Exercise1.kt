@@ -28,7 +28,7 @@ fun VisibilityAnimationScreen() {
         ) {
             Icon(if (isVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null)
             Spacer(Modifier.width(8.dp))
-            Text(if (isVisible) "Hide Element" else "Show Element")
+            Text(if (isVisible) "Ocultar Elemento" else "Mostrar Elemento")
         }
 
         Spacer(modifier = Modifier.height(24.dp))

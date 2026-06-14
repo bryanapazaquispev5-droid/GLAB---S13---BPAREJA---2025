@@ -17,12 +17,12 @@ fun ObservationScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         ObservationItem(
-            label = "The Challenge",
-            text = "Coordinating multiple state animations in the videogame prototype, ensuring that 'STRIKE' scaling and enemy health transitions felt responsive."
+            label = "El Desafío",
+            text = "Coordinar múltiples animaciones de estado en el prototipo de videojuego, asegurando que el escalado de 'ATACAR' y las transiciones de vida del enemigo se sintieran fluidas y responsivas."
         )
         ObservationItem(
-            label = "AI Assistance",
-            text = "Used for UI architectural patterns, modern Material3 styling, and optimizing animation state management."
+            label = "Asistencia de IA",
+            text = "Utilizada para patrones arquitectónicos de UI, estilos modernos de Material3 y optimización del manejo de estados de animación."
         )
     }
 }

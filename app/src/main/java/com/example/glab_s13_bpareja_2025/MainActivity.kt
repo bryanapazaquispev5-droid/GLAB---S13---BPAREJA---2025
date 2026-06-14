@@ -46,7 +46,7 @@ fun MainScreen() {
             CenterAlignedTopAppBar(
                 title = { 
                     Text(
-                        "Jetpack Animations",
+                        "Animaciones Jetpack",
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                     ) 
                 },
@@ -66,27 +66,27 @@ fun MainScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            SectionCard(title = "Exercise 1: Visibility", icon = Icons.Default.Visibility) {
+            SectionCard(title = "Ejercicio 1: Visibilidad", icon = Icons.Default.Visibility) {
                 VisibilityAnimationScreen()
             }
             
-            SectionCard(title = "Exercise 2: Color Transition", icon = Icons.Default.Palette) {
+            SectionCard(title = "Ejercicio 2: Transición de Color", icon = Icons.Default.Palette) {
                 ColorAnimationScreen()
             }
             
-            SectionCard(title = "Exercise 3: Size & Position", icon = Icons.Default.OpenWith) {
+            SectionCard(title = "Ejercicio 3: Tamaño y Posición", icon = Icons.Default.OpenWith) {
                 SizeAndPositionAnimationScreen()
             }
             
-            SectionCard(title = "Exercise 4: Content Switch", icon = Icons.Default.Sync) {
+            SectionCard(title = "Ejercicio 4: Cambio de Contenido", icon = Icons.Default.Sync) {
                 ContentAnimationScreen()
             }
             
-            SectionCard(title = "Final: Videogame Prototype", icon = Icons.Default.VideogameAsset) {
+            SectionCard(title = "Final: Prototipo de Videojuego", icon = Icons.Default.VideogameAsset) {
                 GamePrototypeScreen()
             }
             
-            SectionCard(title = "Laboratory Observations", icon = Icons.Default.Info) {
+            SectionCard(title = "Observaciones del Laboratorio", icon = Icons.Default.Info) {
                 ObservationScreen()
             }
             

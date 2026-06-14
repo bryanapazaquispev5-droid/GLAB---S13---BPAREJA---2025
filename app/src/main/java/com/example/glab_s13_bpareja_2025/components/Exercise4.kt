@@ -31,7 +31,7 @@ fun ContentAnimationScreen() {
             },
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text("Cycle Application State")
+            Text("Ciclar Estado de la Aplicación")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -52,12 +52,12 @@ fun ContentAnimationScreen() {
                     ScreenState.Content -> Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(32.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Data Synchronized", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text("Datos Sincronizados", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                     }
                     ScreenState.Error -> Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Connection Failed", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                        Text("Error de Conexión", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
