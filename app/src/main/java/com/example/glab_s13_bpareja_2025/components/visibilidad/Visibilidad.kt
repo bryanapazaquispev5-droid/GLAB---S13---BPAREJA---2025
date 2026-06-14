@@ -1,7 +1,7 @@
 package com.example.glab_s13_bpareja_2025.components.visibilidad
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,39 +15,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.glab_s13_bpareja_2025.components.comun.AnimatedButton
 
 @Composable
 fun VisibilityAnimationScreen() {
     var isVisible by remember { mutableStateOf(true) }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Button(
-            onClick = { isVisible = !isVisible },
-            shape = RoundedCornerShape(12.dp)
+        AnimatedButton(
+            onClick = { isVisible = !isVisible }
         ) {
             Icon(if (isVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null)
             Spacer(Modifier.width(8.dp))
             Text(if (isVisible) "Ocultar Elemento" else "Mostrar Elemento")
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         AnimatedVisibility(
             visible = isVisible,
-            enter = fadeIn(tween(600)) + scaleIn(tween(600)),
-            exit = fadeOut(tween(600)) + scaleOut(tween(600))
+            enter = fadeIn(tween(800)) + scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
+            exit = fadeOut(tween(500)) + shrinkOut(tween(500))
         ) {
             Box(
                 modifier = Modifier
-                    .size(120.dp)
-                    .clip(RoundedCornerShape(24.dp))
+                    .size(140.dp)
+                    .clip(RoundedCornerShape(32.dp))
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary,
+                                Color(0xFF6200EE)
+                            )
                         )
                     )
-                    .shadow(8.dp, RoundedCornerShape(24.dp))
+                    .shadow(12.dp, RoundedCornerShape(32.dp))
             )
         }
     }
