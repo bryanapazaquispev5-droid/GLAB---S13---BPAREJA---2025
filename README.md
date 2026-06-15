@@ -13,32 +13,6 @@ Here are two gameplay recordings demonstrating the final retro space combat acti
 - **Demo Video 1:** [Gameplay Clip 1 (MP4)](readme_media/video_gameplay1.mp4)
 - **Demo Video 2:** [Gameplay Clip 2 (MP4)](readme_media/video_gameplay2.mp4)
 
-### 📸 Project Screenshots
-Below are the screenshots extracted from the laboratory report showing visibility, color, scale, slide, and the final Arcade Game components:
-
-<div align="center">
-  <img src="readme_media/image1.png" width="30%" alt="Arcade Game Preview"/>
-  <img src="readme_media/image3.png" width="30%" alt="UI Screen 1"/>
-  <img src="readme_media/image4.png" width="30%" alt="UI Screen 2"/>
-</div>
-
-<div align="center">
-  <img src="readme_media/image5.png" width="30%" alt="Visibility Animation"/>
-  <img src="readme_media/image6.png" width="30%" alt="Size and Position Animation"/>
-  <img src="readme_media/image7.png" width="30%" alt="Dynamic Content Swap"/>
-</div>
-
-<div align="center">
-  <img src="readme_media/image8.png" width="30%" alt="Game Elements"/>
-  <img src="readme_media/image9.png" width="30%" alt="Space Parallax Combat"/>
-  <img src="readme_media/image10.png" width="30%" alt="Extreme Rage Fight"/>
-</div>
-
-<div align="center">
-  <img src="readme_media/image11.png" width="30%" alt="LED Health HUD"/>
-  <img src="readme_media/image12.png" width="30%" alt="Game Menu Options"/>
-</div>
-
 ---
 
 ## ✨ Key Features
@@ -48,20 +22,41 @@ Below are the screenshots extracted from the laboratory report showing visibilit
 - **Effects:** Combined `fadeIn` + `scaleIn` and `fadeOut` + `scaleOut` transitions.
 - **UI Design:** Stretched cards with modern background gradients.
 
+<div align="center">
+  <img src="readme_media/image3.png" width="30%" alt="Visibility State 1"/>
+  <img src="readme_media/image4.png" width="30%" alt="Visibility State 2"/>
+</div>
+
 ### 2. 🎨 Color Transitions
 - Implements `animateColorAsState` for smooth palette transitions.
 - **Functionality:** Real-time fluid color morphing matching the primary material theme.
 - **Interactive Controls:** Toggle buttons reflecting the current selected states.
+
+<div align="center">
+  <img src="readme_media/image5.png" width="30%" alt="Color Transition State 1"/>
+  <img src="readme_media/image6.png" width="30%" alt="Color Transition State 2"/>
+</div>
 
 ### 3. 📏 Size and Position Dynamics
 - Utilizes `animateDpAsState` and `Modifier.offset`.
 - **Physics Engine:** Custom `spring` configuration providing natural elastic bounces.
 - **Control:** Simultaneous scaling and coordinate shifting of UI components.
 
+<div align="center">
+  <img src="readme_media/image7.png" width="30%" alt="Size & Position State 1"/>
+  <img src="readme_media/image8.png" width="30%" alt="Size & Position State 2"/>
+</div>
+
 ### 4. 🔄 Dynamic Content Swapping
 - Implements `AnimatedContent` for clean UI state transitions.
 - **State Machine:** Handles `Loading`, `Content` (success), and `Error` layouts.
 - **Transitions:** Elegant vertical slide-and-fade animations.
+
+<div align="center">
+  <img src="readme_media/image9.png" width="30%" alt="Content State - Loading"/>
+  <img src="readme_media/image10.png" width="30%" alt="Content State - Success"/>
+  <img src="readme_media/image11.png" width="30%" alt="Content State - Error"/>
+</div>
 
 ### 5. 🎮 Retro Arcade Video Game (Mini-Game: Cyber-Battle)
 - **Dedicated Windows:** Launches in a lock-oriented landscape view (`GameActivity`).
@@ -104,6 +99,10 @@ Below are the screenshots extracted from the laboratory report showing visibilit
     - 🔱 **Triple Shot (`TRIPLE_SHOT`)**: Fires a three-laser fan.
     - ⏳ **Time Slow (`TIME_SLOW`)**: Slows enemy bullets and boss/drone movements by 50% for 5 seconds.
     - 🔥 **Rapid Fire (`RAPID_FIRE`)**: Reduces player laser cooldown to 3 frames for 6 seconds.
+
+<div align="center">
+  <img src="readme_media/image12.png" width="80%" alt="Arcade Game Landscape Combat Gameplay"/>
+</div>
 
 ---
 
