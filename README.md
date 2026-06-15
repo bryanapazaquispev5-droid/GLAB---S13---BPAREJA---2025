@@ -5,6 +5,40 @@ A modern Android application developed with **Jetpack Compose** showcasing advan
 ## 📱 Project Overview
 This application is organized in a highly modular fashion, presenting 5 interactive sections ranging from basic transition concepts to a complete arcade video game.
 
+## 🎥 Media & Demos
+
+### 🎮 Gameplay Demonstration Videos
+Here are two gameplay recordings demonstrating the final retro space combat action:
+
+- **Demo Video 1:** [Gameplay Clip 1 (MP4)](readme_media/video_gameplay1.mp4)
+- **Demo Video 2:** [Gameplay Clip 2 (MP4)](readme_media/video_gameplay2.mp4)
+
+### 📸 Project Screenshots
+Below are the screenshots extracted from the laboratory report showing visibility, color, scale, slide, and the final Arcade Game components:
+
+<div align="center">
+  <img src="readme_media/image1.png" width="30%" alt="Arcade Game Preview"/>
+  <img src="readme_media/image3.png" width="30%" alt="UI Screen 1"/>
+  <img src="readme_media/image4.png" width="30%" alt="UI Screen 2"/>
+</div>
+
+<div align="center">
+  <img src="readme_media/image5.png" width="30%" alt="Visibility Animation"/>
+  <img src="readme_media/image6.png" width="30%" alt="Size and Position Animation"/>
+  <img src="readme_media/image7.png" width="30%" alt="Dynamic Content Swap"/>
+</div>
+
+<div align="center">
+  <img src="readme_media/image8.png" width="30%" alt="Game Elements"/>
+  <img src="readme_media/image9.png" width="30%" alt="Space Parallax Combat"/>
+  <img src="readme_media/image10.png" width="30%" alt="Extreme Rage Fight"/>
+</div>
+
+<div align="center">
+  <img src="readme_media/image11.png" width="30%" alt="LED Health HUD"/>
+  <img src="readme_media/image12.png" width="30%" alt="Game Menu Options"/>
+</div>
+
 ---
 
 ## ✨ Key Features
